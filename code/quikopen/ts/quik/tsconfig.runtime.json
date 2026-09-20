@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.browser.json",
+  "compilerOptions": { "types": ["node", "bun", "react", "react-dom"] },
+  "include": [
+    "app/cli/**/*.ts",
+    "cli.ts",
+    "scripts/**/*.ts",
+    "test/**/*.ts",
+    "app/**/*.test.ts",
+    "app/**/*.test.tsx",
+    "app/assets.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "build", "coverage"]
+}

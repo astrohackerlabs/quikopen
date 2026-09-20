@@ -1,0 +1,42 @@
+{
+  "name": "@astrohacker/quikopen-source",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.0",
+  "devDependencies": {
+    "@types/node": "26.3.0",
+    "typescript": "7.0.2",
+    "prettier": "3.9.6",
+    "oxlint": "1.80.0",
+    "oxlint-tsgolint": "7.0.2001",
+    "prettier-plugin-tailwindcss": "0.8.1"
+  },
+  "overrides": {
+    "@types/node": "26.3.0",
+    "@types/bun": "1.4.0",
+    "bun-types": "1.4.0"
+  },
+  "workspaces": [
+    "code/quikopen/ts/quik",
+    "code/astrohacker/ts/ui",
+    "code/webbuf/ts/webbuf",
+    "code/webbuf/ts/fixedbuf",
+    "code/webbuf/ts/numbers",
+    "code/webbuf/ts/rw"
+  ],
+  "scripts": {
+    "build:webbuf": "bun run --cwd code/webbuf/ts/webbuf build && bun run --cwd code/webbuf/ts/fixedbuf build && bun run --cwd code/webbuf/ts/numbers build && bun run --cwd code/webbuf/ts/rw build",
+    "build": "bun run build:webbuf && bun run --cwd code/quikopen/ts/quik build:quikopen",
+    "test": "bun run --cwd code/quikopen/ts/quik test",
+    "format": "bun run format:shared && bun run --workspaces format",
+    "format:check": "bun run format:shared:check && bun run --workspaces format:check",
+    "lint": "bun run lint:shared && bun run --workspaces lint",
+    "lint:fix": "bun run lint:shared:fix && bun run --workspaces lint:fix",
+    "typecheck": "bun run typecheck:shared && bun run --workspaces typecheck",
+    "format:shared": "prettier --write code/*.ts code/*.mjs code/*.json",
+    "format:shared:check": "prettier --check code/*.ts code/*.mjs code/*.json",
+    "lint:shared": "oxlint --config code/oxlint.config.ts --deny-warnings code/*.ts code/*.mjs",
+    "lint:shared:fix": "oxlint --config code/oxlint.config.ts --deny-warnings --fix code/*.ts code/*.mjs",
+    "typecheck:shared": "tsc --noEmit -p code/tsconfig.json"
+  }
+}

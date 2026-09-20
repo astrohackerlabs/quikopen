@@ -1,0 +1,60 @@
+{
+  "name": "@webbuf/rw",
+  "version": "4.0.1",
+  "description": "Read and write buffers, optimized with Rust/WASM for the web, node.js, deno, and bun.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/astrohackerlabs/webbuf"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "clean": "rimraf dist",
+    "test": "vitest --run --dir test",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.runtime.json",
+    "lint": "oxlint --config ../../../oxlint.config.ts --deny-warnings .",
+    "format": "prettier --ignore-path ../../../.prettierignore --ignore-path .prettierignore --write . --ignore-path ../.prettierignore",
+    "format:check": "prettier --ignore-path ../../../.prettierignore --ignore-path .prettierignore --check . --ignore-path ../.prettierignore",
+    "fix": "bun run typecheck && bun run lint:fix && bun run format",
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun run clean && bun run build",
+    "lint:fix": "oxlint --config ../../../oxlint.config.ts --deny-warnings --fix ."
+  },
+  "engines": {
+    "node": ">=20.8.0"
+  },
+  "packageManager": "bun@1.4.0",
+  "keywords": [
+    "buffer",
+    "base64",
+    "hex",
+    "uint256",
+    "int256",
+    "uint128",
+    "int128",
+    "rust",
+    "wasm"
+  ],
+  "author": "Astrohacker",
+  "license": "MIT",
+  "peerDependencies": {
+    "@webbuf/fixedbuf": "workspace:^",
+    "@webbuf/numbers": "workspace:^",
+    "@webbuf/webbuf": "workspace:^"
+  },
+  "devDependencies": {
+    "@webbuf/fixedbuf": "workspace:^",
+    "@webbuf/numbers": "workspace:^",
+    "@webbuf/webbuf": "workspace:^",
+    "@types/node": "26.3.0",
+    "buffer": "^6.0.3",
+    "prettier": "3.9.6",
+    "rimraf": "^6.0.1",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "vitest": "4.1.11",
+    "oxlint": "1.80.0",
+    "oxlint-tsgolint": "7.0.2001"
+  }
+}

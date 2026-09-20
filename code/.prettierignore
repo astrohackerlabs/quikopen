@@ -1,0 +1,17 @@
+# Generated build products and dependency checkouts.
+**/node_modules/**
+**/dist/**
+**/build/**
+**/coverage/**
+**/.react-router/**
+**/.astro/**
+**/src/rs-*-bundler/**
+**/src/rs-*-inline-base64/**
+**/routeTree.gen.ts
+**/app/cli/embedded-version.ts
+**/app/blog.json
+# Reference datasets: preserve source bytes, not handwritten test code.
+**/test/fixtures/*.json
+**/test/vectors/*.json
+# Frozen e2cab7e81 ScriptNum oracle; preserve its source bytes.
+earthbucks/ts/ebxlib/test/script-num-legacy.ts

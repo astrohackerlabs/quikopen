@@ -1,0 +1,5 @@
+# scripts/build-quik.ts embeds identity; RR/Vite generate build outputs.
+/app/cli/embedded-version.ts
+/dist/
+/build/
+/.react-router/

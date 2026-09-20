@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@source "../src";
+@import "@astrohacker/ui/styles.css";
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--ah-background);
+  color: var(--ah-foreground);
+  font-family: var(--font-mono);
+}
+
+.allui-section {
+  scroll-margin-top: 1.5rem;
+}

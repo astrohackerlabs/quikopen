@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2000" width="2000" height="2000">
+  <rect width="2000" height="2000" fill="#e8a84a"/>
+  <rect x="0" y="0" width="80" height="80" fill="#111219"/>
+  <rect x="1920" y="0" width="80" height="80" fill="#111219"/>
+  <rect x="0" y="1920" width="80" height="80" fill="#111219"/>
+  <rect x="1920" y="1920" width="80" height="80" fill="#111219"/>
+  <text x="1000" y="1020" text-anchor="middle" font-size="72" font-family="ui-monospace, monospace" fill="#111219">2000×2000</text>
+</svg>

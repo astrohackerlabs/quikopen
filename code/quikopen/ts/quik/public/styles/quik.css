@@ -1,0 +1,105 @@
+/* Austin Night tokens (parity with ahcalc public styles) */
+:root {
+  color-scheme: dark;
+  --ah-background: #111219;
+  --ah-background-dark: #060608;
+  --ah-background-highlight: #292e42;
+  --ah-foreground: #c0caf5;
+  --ah-foreground-dark: #a9b1d6;
+  --ah-primary: #7aa2f7;
+  --ah-primary-foreground: #111219;
+  --ah-secondary: #bb9af7;
+  --ah-accent: #7dcfff;
+  --ah-success: #9ece6a;
+  --ah-warning: #e8a84a;
+  --ah-danger: #f7768e;
+  --ah-muted: #9aa5ce;
+  --ah-border: #3b4261;
+  --ah-ring: #7aa2f7;
+  --radius: 0.5rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+.quik-root {
+  overflow: hidden;
+}
+
+html,
+body {
+  height: 100dvh;
+}
+
+body {
+  margin: 0;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.font-heading {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+}
+
+.quik-shell {
+  display: flex;
+  flex-direction: column;
+  min-width: 20rem;
+  min-height: 16rem;
+  max-width: calc(100vw - 3rem);
+  max-height: calc(100dvh - 3rem);
+  width: fit-content;
+  height: fit-content;
+}
+
+.quik-stage {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: rgba(6, 6, 8, 0.85);
+  border: 1px solid var(--ah-border);
+  border-radius: var(--radius);
+}
+
+.quik-svg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+}
+
+.quik-exit {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--ah-border);
+  background: rgba(247, 118, 142, 0.12);
+  color: var(--ah-danger);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.quik-exit:hover,
+.quik-exit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ah-ring);
+}
+
+.quik-exit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.quik-exit-err {
+  display: none;
+}
