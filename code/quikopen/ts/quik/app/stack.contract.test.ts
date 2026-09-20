@@ -107,6 +107,53 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
     expect(page).not.toContain("max-w-[640px]");
   });
 
+  test("three stage background swatches", () => {
+    const css = readFileSync(join(pkgRoot, "app/app.css"), "utf8");
+    expect(css).toContain('.quik-stage[data-bg="dark"]');
+    expect(css).toContain('.quik-stage[data-bg="bright"]');
+    expect(css).toContain('.quik-stage[data-bg="checkered"]');
+    expect(css).toContain("repeating-conic-gradient");
+    const swatches = readFileSync(
+      join(pkgRoot, "app/components/background-swatches.tsx"),
+      "utf8",
+    );
+    expect(swatches).toContain('data-testid="quik-bg"');
+    expect(swatches).toContain("Dark");
+    expect(swatches).toContain("Bright");
+    expect(swatches).toContain("Checkered");
+    const page = readFileSync(
+      join(pkgRoot, "app/components/viewer-page.tsx"),
+      "utf8",
+    );
+    expect(page).toContain("BackgroundSwatches");
+    expect(page).toContain("data-bg={bg}");
+  });
+
+  test("filename sits on its own full-width row under the chrome", () => {
+    const page = readFileSync(
+      join(pkgRoot, "app/components/viewer-page.tsx"),
+      "utf8",
+    );
+    expect(page).toContain('data-testid="quik-header"');
+    expect(page).toContain("flex-col");
+    expect(page).toContain('data-testid="quik-header-chrome"');
+    expect(page).toContain('data-testid="quik-filename"');
+    const chromeStart = page.indexOf('data-testid="quik-header-chrome"');
+    const chromeEnd = page.indexOf("quik-filename");
+    const chrome = page.slice(chromeStart, chromeEnd);
+    expect(chrome).toContain("BackgroundSwatches");
+    expect(chrome).toContain("ExitButton");
+    expect(chrome).not.toContain("quik-filename");
+    expect(
+      existsSync(
+        join(
+          pkgRoot,
+          "fixtures/a-very-long-quikopen-filename-that-needs-the-full-card-row.svg",
+        ),
+      ),
+    ).toBe(true);
+  });
+
   test("size fixtures declare explicit pixel width and height", () => {
     const expected: Record<string, { width: string; height: string }> = {
       "sample.svg": { width: "32", height: "32" },
@@ -114,6 +161,11 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
       "wide.svg": { width: "2000", height: "200" },
       "tall.svg": { width: "200", height: "2000" },
       "huge.svg": { width: "2000", height: "2000" },
+      "transparent-black.svg": { width: "200", height: "200" },
+      "a-very-long-quikopen-filename-that-needs-the-full-card-row.svg": {
+        width: "32",
+        height: "32",
+      },
     };
     for (const [name, size] of Object.entries(expected)) {
       const path = join(pkgRoot, "fixtures", name);
@@ -123,5 +175,11 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
       expect(svg).toContain(`height="${size.height}"`);
       expect(svg).toContain(`viewBox="0 0 ${size.width} ${size.height}"`);
     }
+    const ink = readFileSync(
+      join(pkgRoot, "fixtures/transparent-black.svg"),
+      "utf8",
+    );
+    expect(ink).toContain('fill="#000000"');
+    expect(ink).not.toContain('fill="#111219"');
   });
 });

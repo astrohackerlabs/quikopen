@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "version": "0.1.0",
-  "monorepo_commit": "b2aae3e4407cd1322346d921c4b2a086a2ab1a67",
+  "version": "0.1.1",
+  "monorepo_commit": "637eb8eadc7a409bb4df78f461587bd66f15f895",
   "files": [
     {
       "path": ".gitignore",
@@ -21,7 +21,7 @@
     },
     {
       "path": "bun.lock",
-      "sha256": "98f3d03759d1530ff980115cac1bb42635225921c00aaaaf60d6edc39eb78c69"
+      "sha256": "6c0c43e6798341b975f4a63e444a80be3c196c528af350f96541c5d86d1e6f75"
     },
     {
       "path": "code/.prettierignore",
@@ -137,7 +137,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/app.css",
-      "sha256": "22f2f20516fc28069252d49cdfdd8d15418ef1d77c4a2574a312124c06069921"
+      "sha256": "3d690175c3bdc04ebd16601b35a19091502ea66805d012bd8c563f5b3a0c5017"
     },
     {
       "path": "code/quikopen/ts/quik/app/assets.d.ts",
@@ -145,7 +145,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/embedded-version.ts",
-      "sha256": "07ef76639fad8fb3b18e5bc0bece065154d1c039d8a7cc26b22aa7d1ff8ebeec"
+      "sha256": "5006d04ea4c224b2fae28085ba470d91e836b714691dcb3771aa79cdb6f42916"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/geometry.test.ts",
@@ -248,12 +248,16 @@
       "sha256": "66b23907b40a547bfbbecdca9f2d818483c53238984d1c901c55a816f705d2fe"
     },
     {
+      "path": "code/quikopen/ts/quik/app/components/background-swatches.tsx",
+      "sha256": "85c1b83e8ba95b022c27d62d429c59c5fa5d6df0e97febd073ffe15223dc63fe"
+    },
+    {
       "path": "code/quikopen/ts/quik/app/components/exit-button.tsx",
       "sha256": "e90ff34457db1f892c9a766ee611338b366c041ef4dcbf4025854f9804dbde96"
     },
     {
       "path": "code/quikopen/ts/quik/app/components/viewer-page.tsx",
-      "sha256": "0b98964908fb06625b7f9ba4d99ff6e3a3df285360111ff3c275ecdcfe1950b9"
+      "sha256": "0f53cb1b0ee655ec41f0784602962d40afd252be93347507ed8dc1e07221ec92"
     },
     {
       "path": "code/quikopen/ts/quik/app/entry.client.tsx",
@@ -281,11 +285,15 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/stack.contract.test.ts",
-      "sha256": "9f67d9ab61ccab56a32573ddb1d790e10e30ab1c6bf8e8ec4684c539311c4c97"
+      "sha256": "31cd50f0051576f778e984fea42cebc3500fd7c3b97a2564498b09a6c8e05f1e"
     },
     {
       "path": "code/quikopen/ts/quik/cli.ts",
       "sha256": "ab13c981fec0f0f722ae3eb7a81634705a7854bd3409c3894440b1d390a44923"
+    },
+    {
+      "path": "code/quikopen/ts/quik/fixtures/a-very-long-quikopen-filename-that-needs-the-full-card-row.svg",
+      "sha256": "b66577ae557dbf2399b5e4c2ace5ced7937d2c9d2d97197a0bed9e506670ed2f"
     },
     {
       "path": "code/quikopen/ts/quik/fixtures/huge.svg",
@@ -304,12 +312,16 @@
       "sha256": "e851ee7c832ad258b3f0ded968a9ba9418a865465d6d46aa3f3a83cc301b8c24"
     },
     {
+      "path": "code/quikopen/ts/quik/fixtures/transparent-black.svg",
+      "sha256": "c3cee48203874302c68aa480758499b70f446ccd7801f50f8a14011f048e7f10"
+    },
+    {
       "path": "code/quikopen/ts/quik/fixtures/wide.svg",
       "sha256": "dd5e9f23abcd3561ac94924b2e7d14c2067661b02da24001b8ef5a5eaf35b223"
     },
     {
       "path": "code/quikopen/ts/quik/package.json",
-      "sha256": "307cbaa86dd36deaad08dd6c4526513b02d0f0270133b06cb5c14d7c91eb397d"
+      "sha256": "b21b032827484673652944b1746cab7c9f393368546397270ee648bb959ae940"
     },
     {
       "path": "code/quikopen/ts/quik/prettier.config.mjs",
@@ -329,7 +341,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/public/styles/quik.css",
-      "sha256": "c2dac0390da57d2ee7798201e8d522fef066de626ba536cc9e82cd27bfeb16a5"
+      "sha256": "3195ab09c7dc8d7ca283f21f62f94c0e24bda9b913dfec308ab1a1d5b985008d"
     },
     {
       "path": "code/quikopen/ts/quik/react-router.config.ts",

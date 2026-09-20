@@ -3,10 +3,15 @@ import { SpaceRain } from "@astrohacker/ui/space-rain";
 import { shellPanel } from "@astrohacker/ui/surfaces";
 import { cn } from "~/lib/utils";
 import { ExitButton } from "~/components/exit-button";
+import {
+  BackgroundSwatches,
+  type StageBg,
+} from "~/components/background-swatches";
 
 export function ViewerPage(): React.JSX.Element {
   const [name, setName] = useState("");
   const [svgSrc, setSvgSrc] = useState("");
+  const [bg, setBg] = useState<StageBg>("dark");
 
   useEffect(() => {
     const page = new URL(window.location.href);
@@ -36,29 +41,36 @@ export function ViewerPage(): React.JSX.Element {
           data-testid="quik-shell"
           className={cn("quik-shell p-5", shellPanel)}
         >
-          <header className="mb-[18px] flex shrink-0 items-center gap-3">
-            <img
-              src="/images/astrohacker-7-dark-64.webp"
-              srcSet="/images/astrohacker-7-dark-64.webp 1x, /images/astrohacker-7-dark-128.webp 2x, /images/astrohacker-7-dark-200.webp 3x"
-              width={40}
-              height={40}
-              alt="Astrohacker logo"
-              data-testid="quik-logo"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="m-0 font-heading text-[0.85rem] font-bold tracking-[0.28em] text-primary uppercase">
+          <header
+            data-testid="quik-header"
+            className="mb-[18px] flex shrink-0 flex-col gap-2"
+          >
+            <div
+              data-testid="quik-header-chrome"
+              className="flex items-center gap-3"
+            >
+              <img
+                src="/images/astrohacker-7-dark-64.webp"
+                srcSet="/images/astrohacker-7-dark-64.webp 1x, /images/astrohacker-7-dark-128.webp 2x, /images/astrohacker-7-dark-200.webp 3x"
+                width={40}
+                height={40}
+                alt="Astrohacker logo"
+                data-testid="quik-logo"
+              />
+              <p className="m-0 min-w-0 flex-1 font-heading text-[0.85rem] font-bold tracking-[0.28em] text-primary uppercase">
                 Quikopen
               </p>
-              <p
-                className="mt-1 mb-0 truncate text-[0.75rem] tracking-[0.08em] text-muted"
-                data-testid="quik-filename"
-              >
-                {name || "SVG"}
-              </p>
+              <BackgroundSwatches value={bg} onChange={setBg} />
+              <ExitButton />
             </div>
-            <ExitButton />
+            <p
+              className="m-0 w-full truncate text-[0.75rem] tracking-[0.08em] text-muted"
+              data-testid="quik-filename"
+            >
+              {name || "SVG"}
+            </p>
           </header>
-          <div data-testid="quik-stage" className="quik-stage">
+          <div data-testid="quik-stage" className="quik-stage" data-bg={bg}>
             {svgSrc ? (
               <img
                 data-testid="quik-svg"
