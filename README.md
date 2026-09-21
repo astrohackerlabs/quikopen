@@ -1,16 +1,18 @@
-# Quikopen
+# QuikOpen
 
-Open SVG files inside Astrohacker TermSurf. The overlay shows the drawing at
-its natural size in a centered card.
+QuikOpen is an image viewer for Astrohacker TermSurf. Open SVG, JPEG (.jpg or
+.jpeg), PNG, GIF and WebP files at their natural size in a centered card.
+Animated GIF and WebP, transparent PNG and WebP, and JPEG orientation are
+supported. Files can be up to 8 MiB.
 
-Quikopen is installed separately. Opening a file currently requires Astrohacker
+QuikOpen is installed separately. Opening a file currently requires Astrohacker
 TermSurf. Support for other terminals is not implemented here.
 
 ## Installation
 
 Install from the shared Astrohacker Homebrew tap on an Apple-silicon Mac running macOS 26 or newer:
 
-```
+```nu
 brew trust astrohackerlabs/astrohacker
 brew tap astrohackerlabs/astrohacker
 brew install quikopen
@@ -23,7 +25,10 @@ TermSurf. Running this prebuilt package does not require Bun or Node.
 
 Inside an Astrohacker TermSurf pane:
 
-```
+```nu
+quikopen photo.jpg
+quikopen transparent.png
+quikopen animation.webp
 quikopen drawing.svg
 ```
 

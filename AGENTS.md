@@ -1,6 +1,6 @@
-# AGENTS.md — Quikopen public source
+# AGENTS.md — QuikOpen public source
 
-Quikopen is a Bun/React Router SVG viewer for Astrohacker TermSurf,
+QuikOpen is a Bun/React Router image viewer for Astrohacker TermSurf,
 independently versioned and installed. It does not render in generic
 terminals.
 

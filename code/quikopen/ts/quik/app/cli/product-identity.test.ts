@@ -36,8 +36,8 @@ describe("resolveProductVersion / formatVersionLine", () => {
     ).toBe("0.1.50");
   });
 
-  test("formatVersionLine is Quikopen <version>", () => {
-    expect(formatVersionLine("9.9.9")).toBe("Quikopen 9.9.9");
+  test("formatVersionLine is QuikOpen <version>", () => {
+    expect(formatVersionLine("9.9.9")).toBe("QuikOpen 9.9.9");
   });
 });
 
@@ -74,11 +74,11 @@ describe("tryHandleIdentity (shipped dispatch)", () => {
     );
     expect(handled).toBe(true);
     const text = chunks.join("");
-    expect(text.split("\n")[0]).toBe("Quikopen 9.9.9");
+    expect(text.split("\n")[0]).toBe("QuikOpen 9.9.9");
     expect(versionOutput("9.9.9")).toBe(text);
   });
 
-  test("writes help first line starting with Quikopen", () => {
+  test("writes help first line starting with QuikOpen", () => {
     const chunks: string[] = [];
     const handled = tryHandleIdentity(
       ["quik", "--help"],
@@ -88,9 +88,10 @@ describe("tryHandleIdentity (shipped dispatch)", () => {
     expect(handled).toBe(true);
     const text = chunks.join("");
     expect(text.split("\n")[0]).toBe(HELP_FIRST_LINE);
-    expect(text.startsWith("Quikopen")).toBe(true);
-    expect(text).toContain("quikopen <svg-path>");
-    expect(text).not.toContain("  quik <svg-path>");
+    expect(text.startsWith("QuikOpen")).toBe(true);
+    expect(text.startsWith("Quikopen")).toBe(false);
+    expect(text).toContain("quikopen <image-path>");
+    expect(text).not.toContain("  quik <image-path>");
     expect(helpOutput("1.0.0")).toBe(text);
   });
 

@@ -10,7 +10,8 @@ import {
 
 export function ViewerPage(): React.JSX.Element {
   const [name, setName] = useState("");
-  const [svgSrc, setSvgSrc] = useState("");
+  const [imageSrc, setImageSrc] = useState("");
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [bg, setBg] = useState<StageBg>("dark");
 
   useEffect(() => {
@@ -18,7 +19,7 @@ export function ViewerPage(): React.JSX.Element {
     const fromQuery = page.searchParams.get("name");
     if (fromQuery) setName(fromQuery);
     const q = page.search;
-    setSvgSrc(`/svg${q}`);
+    setImageSrc(`/image${q}`);
     void fetch(`/__quik/meta${q}`)
       .then((r) => r.json() as Promise<{ ok?: boolean; name?: string }>)
       .then((body) => {
@@ -50,15 +51,15 @@ export function ViewerPage(): React.JSX.Element {
               className="flex items-center gap-3"
             >
               <img
-                src="/images/astrohacker-7-dark-64.webp"
-                srcSet="/images/astrohacker-7-dark-64.webp 1x, /images/astrohacker-7-dark-128.webp 2x, /images/astrohacker-7-dark-200.webp 3x"
+                src="/images/quikopen-dark-64.webp"
+                srcSet="/images/quikopen-dark-64.webp 1x, /images/quikopen-dark-128.webp 2x, /images/quikopen-dark-200.webp 3x"
                 width={40}
                 height={40}
-                alt="Astrohacker logo"
+                alt="QuikOpen logo"
                 data-testid="quik-logo"
               />
-              <p className="m-0 min-w-0 flex-1 font-heading text-[0.85rem] font-bold tracking-[0.28em] text-primary uppercase">
-                Quikopen
+              <p className="m-0 min-w-0 flex-1 font-heading text-[0.85rem] font-bold tracking-[0.28em] text-primary">
+                QuikOpen
               </p>
               <BackgroundSwatches value={bg} onChange={setBg} />
               <ExitButton />
@@ -67,16 +68,34 @@ export function ViewerPage(): React.JSX.Element {
               className="m-0 w-full truncate text-[0.75rem] tracking-[0.08em] text-muted"
               data-testid="quik-filename"
             >
-              {name || "SVG"}
+              {name || "Image"}
             </p>
           </header>
           <div data-testid="quik-stage" className="quik-stage" data-bg={bg}>
-            {svgSrc ? (
+            {failedSrc === imageSrc ? (
+              <p
+                role="alert"
+                data-testid="quik-image-error"
+                className="p-6 text-primary"
+              >
+                Could not display {name || "this image"}. The file may be
+                damaged, unsupported, or no longer available.
+              </p>
+            ) : null}
+            {imageSrc ? (
               <img
-                data-testid="quik-svg"
-                className="quik-svg"
-                src={svgSrc}
-                alt={name || "SVG"}
+                data-testid="quik-image"
+                className="quik-image"
+                key={imageSrc}
+                src={imageSrc}
+                hidden={failedSrc === imageSrc}
+                onError={() => {
+                  setFailedSrc(imageSrc);
+                }}
+                onLoad={() => {
+                  setFailedSrc(null);
+                }}
+                alt={name || "Image"}
               />
             ) : null}
           </div>

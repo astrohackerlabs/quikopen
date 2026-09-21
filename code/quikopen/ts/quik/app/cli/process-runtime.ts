@@ -6,7 +6,7 @@ import type { Readable } from "node:stream";
 
 import { bindRuntimePort } from "./runtime-port.ts";
 import { mintToken, timingSafeEqualStr, buildQuikUrl } from "./identity.ts";
-import { resolveSvgPath } from "./svg-path.ts";
+import { imageDisposition, resolveImagePath } from "./image-path.ts";
 import {
   createStaticHttpHandler,
   type StaticHttpHandler,
@@ -19,7 +19,7 @@ import {
 } from "./termsurf-client.ts";
 import { watchEscInput } from "./tty-esc.ts";
 
-export interface SvgFile {
+export interface ImageFile {
   path: string;
   name: string;
 }
@@ -57,7 +57,7 @@ async function tokenFromBody(request: Request): Promise<string | null> {
 export async function startProcess(
   env: NodeJS.ProcessEnv = process.env,
   overlay: OverlayOptions = {},
-  svg: SvgFile,
+  image: ImageFile,
 ): Promise<ProcessHandles> {
   const skipTs = env.QUIK_SKIP_TERMSURF === "1";
   const tsEnv = readTermSurfEnv(env);
@@ -90,7 +90,7 @@ export async function startProcess(
         handleHttp(req, {
           staticHttp,
           token,
-          svg,
+          image,
           onExit: () => {
             handles.requestExit("ui-x");
           },
@@ -105,7 +105,7 @@ export async function startProcess(
   handles.port = port;
   handles.http = http;
 
-  const url = buildQuikUrl(port, token, svg.name);
+  const url = buildQuikUrl(port, token, image.name);
 
   if (!skipTs && !("error" in tsEnv)) {
     const geometry = readTerminalGeometry(env);
@@ -153,30 +153,30 @@ async function handleHttp(
   ctx: {
     staticHttp: StaticHttpHandler;
     token: string;
-    svg: SvgFile;
+    image: ImageFile;
     onExit: () => void;
   },
 ): Promise<Response> {
   const url = new URL(request.url);
 
   if (
-    url.pathname === "/svg" &&
+    url.pathname === "/image" &&
     (request.method === "GET" || request.method === "HEAD")
   ) {
     const got = tokenFromUrl(url);
     if (!got || !timingSafeEqualStr(got, ctx.token)) {
       return new Response("missing identity", { status: 404 });
     }
-    const again = resolveSvgPath(ctx.svg.path);
+    const again = resolveImagePath(ctx.image.path);
     if (!again.ok) {
       return new Response(again.error, { status: 404 });
     }
     const file = Bun.file(again.path);
     return new Response(request.method === "HEAD" ? null : file, {
       headers: {
-        "content-type": "image/svg+xml; charset=utf-8",
+        "content-type": again.mime,
         "x-content-type-options": "nosniff",
-        "content-disposition": `inline; filename="${again.name.replaceAll('"', "")}"`,
+        "content-disposition": imageDisposition(again.name),
       },
     });
   }
@@ -189,7 +189,7 @@ async function handleHttp(
         { status: 404 },
       );
     }
-    return Response.json({ ok: true, name: ctx.svg.name });
+    return Response.json({ ok: true, name: ctx.image.name });
   }
 
   if (url.pathname === "/__quik/exit" && request.method === "POST") {

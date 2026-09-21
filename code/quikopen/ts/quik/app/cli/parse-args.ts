@@ -25,7 +25,7 @@ export function isBunCompileVirtualEntry(arg: string): boolean {
 
 /**
  * Parse process.argv-style args (includes argv0).
- * Supports: one positional SVG path, --browser / -b, --profile / -p.
+ * Supports: one positional image path, --browser / -b, --profile / -p.
  * Values may be `--flag=value` or `--flag value`.
  * Skips Bun compiled-binary virtual entry paths (`/$bunfs/…`).
  */
@@ -92,7 +92,7 @@ export function parseClientArgs(
   }
 
   if (!file) {
-    return { ok: false, error: "missing svg path" };
+    return { ok: false, error: "missing image path" };
   }
 
   return {

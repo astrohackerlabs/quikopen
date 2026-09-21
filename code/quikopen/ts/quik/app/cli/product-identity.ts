@@ -4,10 +4,10 @@
  */
 import { QUIK_EMBEDDED_VERSION } from "./embedded-version.ts";
 
-export const PRODUCT_NAME = "Quikopen";
+export const PRODUCT_NAME = "QuikOpen";
 
 export const HELP_FIRST_LINE =
-  "Quikopen — open SVG files in Astrohacker TermSurf panes";
+  "QuikOpen — image viewer for Astrohacker TermSurf";
 
 /**
  * Resolve stamped product version.
@@ -55,13 +55,14 @@ export function helpOutput(version: string): string {
     "\n\n" +
     `Version: ${formatVersionLine(version)}\n` +
     "Usage:\n" +
-    "  quikopen <svg-path>            Open an SVG in the current TermSurf pane\n" +
+    "  quikopen <image-path>            Open an image in the current TermSurf pane\n" +
     "  quikopen --browser <engine>    Browser engine (chromium, webkit, …)\n" +
     "  quikopen --profile <name>      Browser profile name (default: default)\n" +
     "  quikopen -b <engine>           Short for --browser\n" +
     "  quikopen -p <name>             Short for --profile\n" +
     "  quikopen --version             Print version\n" +
-    "  quikopen --help                Print this help\n"
+    "  quikopen --help                Print this help\n" +
+    "\nFormats: .svg, .jpg, .jpeg, .png, .gif, .webp (case insensitive; max 8 MiB).\n"
   );
 }
 

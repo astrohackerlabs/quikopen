@@ -42,7 +42,7 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
     );
     expect(page).toContain('from "@astrohacker/ui/space-rain"');
     expect(page).toContain("quik-space-rain");
-    expect(page).toContain("quik-svg");
+    expect(page).toContain("quik-image");
     expect(page).not.toContain("dangerouslySetInnerHTML");
     const routes = readFileSync(join(pkgRoot, "app/routes.ts"), "utf8");
     expect(routes).toContain("@react-router/dev/routes");
@@ -92,7 +92,7 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
     expect(css).toContain("max-height: calc(100dvh - 3rem)");
     expect(css).toMatch(/\.quik-stage[\s\S]*overflow:\s*auto/);
     expect(css).toMatch(/html[\s\S]*overflow:\s*hidden/);
-    const svgRule = css.slice(css.indexOf(".quik-svg"));
+    const svgRule = css.slice(css.indexOf(".quik-image"));
     expect(svgRule).toContain("width: auto");
     expect(svgRule).toContain("height: auto");
     expect(svgRule).toContain("max-width: none");
@@ -127,6 +127,34 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
     );
     expect(page).toContain("BackgroundSwatches");
     expect(page).toContain("data-bg={bg}");
+  });
+
+  test("card uses the quikopen mark not Astrohacker 7", () => {
+    const page = readFileSync(
+      join(pkgRoot, "app/components/viewer-page.tsx"),
+      "utf8",
+    );
+    expect(page).toContain("/images/quikopen-dark-64.webp");
+    expect(page).toContain("QuikOpen logo");
+    expect(page).not.toContain("Quikopen logo");
+    expect(page).not.toContain("astrohacker-7");
+    expect(
+      existsSync(join(pkgRoot, "public/images/quikopen-dark-64.webp")),
+    ).toBe(true);
+    expect(
+      existsSync(join(pkgRoot, "public/images/quikopen-dark-128.webp")),
+    ).toBe(true);
+    expect(
+      existsSync(join(pkgRoot, "public/images/quikopen-dark-200.webp")),
+    ).toBe(true);
+    const master = readFileSync(
+      join(pkgRoot, "../../../../assets/quikopen.svg"),
+      "utf8",
+    );
+    expect(master).toContain('viewBox="274 247 722 722"');
+    expect(master).not.toContain('viewBox="0 0 1254 1254"');
+    expect(master).not.toContain("qo");
+    expect(master).not.toContain("M 214 226 L 226 214 L 248 236 L 236 248 Z");
   });
 
   test("filename sits on its own full-width row under the chrome", () => {

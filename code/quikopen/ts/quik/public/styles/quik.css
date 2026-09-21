@@ -121,7 +121,7 @@ body {
   box-shadow: 0 0 0 2px var(--ah-ring);
 }
 
-.quik-svg {
+.quik-image {
   display: block;
   width: auto;
   height: auto;
@@ -156,5 +156,9 @@ body {
 }
 
 .quik-exit-err {
+  display: none;
+}
+
+.quik-image[hidden] {
   display: none;
 }

@@ -13,7 +13,7 @@ import "./app.css";
 export const links: Route.LinksFunction = () => [
   {
     rel: "icon",
-    href: "/images/astrohacker-7-dark-64.webp",
+    href: "/images/quikopen-dark-64.webp",
     type: "image/webp",
   },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },

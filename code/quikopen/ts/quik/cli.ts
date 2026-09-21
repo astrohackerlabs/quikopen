@@ -1,6 +1,6 @@
 /**
  * Unified quikopen entry (compiled to dist/quikopen).
- * One process per overlay: this process binds HTTP, serves the SVG, and
+ * One process per overlay: this process binds HTTP, serves the image, and
  * talks to TermSurf. No UDS, no --server role.
  *
  * Identity (--version / --help) is handled first so release gates never hang on TermSurf.
@@ -8,7 +8,7 @@
 import { tryHandleIdentity } from "./app/cli/product-identity.ts";
 import { startProcess, waitForExit } from "./app/cli/process-runtime.ts";
 import { parseClientArgs } from "./app/cli/parse-args.ts";
-import { resolveSvgPath } from "./app/cli/svg-path.ts";
+import { resolveImagePath } from "./app/cli/image-path.ts";
 
 async function main(): Promise<void> {
   if (tryHandleIdentity(process.argv, process.env)) {
@@ -21,9 +21,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const svg = resolveSvgPath(parsed.options.file);
-  if (!svg.ok) {
-    console.error(svg.error);
+  const image = resolveImagePath(parsed.options.file);
+  if (!image.ok) {
+    console.error(image.error);
     process.exit(1);
   }
 
@@ -34,7 +34,7 @@ async function main(): Promise<void> {
         browser: parsed.options.browser,
         profile: parsed.options.profile,
       },
-      { path: svg.path, name: svg.name },
+      { path: image.path, name: image.name },
     );
     const reason = await waitForExit(handles);
     if (process.env.QUIK_VERBOSE === "1") {

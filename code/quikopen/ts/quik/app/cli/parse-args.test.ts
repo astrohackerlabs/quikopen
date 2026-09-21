@@ -44,11 +44,11 @@ describe("parseClientArgs", () => {
     expect(parseClientArgs(["bun", entry, SVG], entry).ok).toBe(true);
   });
 
-  test("requires a positional svg path", () => {
+  test("requires a positional image path", () => {
     const r = parseClientArgs(["quik"]);
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.error).toBe("missing svg path");
+    expect(r.error).toBe("missing image path");
   });
 
   test("skips Bun compile virtual entry then reads the path", () => {
@@ -119,7 +119,7 @@ describe("parseClientArgs", () => {
     expect(r.error).toContain("unknown option");
   });
 
-  test("rejects a second positional after the svg path", () => {
+  test("rejects a second positional after the image path", () => {
     const r = parseClientArgs([COMPILED_ARGV0, BUNFS_ENTRY, SVG, "extra-arg"]);
     expect(r.ok).toBe(false);
     if (r.ok) return;

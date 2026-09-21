@@ -3,10 +3,11 @@ import { ViewerPage } from "~/components/viewer-page";
 
 export function meta(): ReturnType<Route.MetaFunction> {
   return [
-    { title: "Quikopen" },
+    { title: "QuikOpen — Image Viewer" },
     {
       name: "description",
-      content: "Open SVG files in Astrohacker TermSurf.",
+      content:
+        "Open SVG, JPEG, PNG, GIF and WebP images in Astrohacker TermSurf.",
     },
   ];
 }
