@@ -48,8 +48,8 @@ body {
 .quik-shell {
   display: flex;
   flex-direction: column;
-  min-width: 20rem;
-  min-height: 16rem;
+  min-width: 32rem;
+  min-height: 18rem;
   max-width: calc(100vw - 3rem);
   max-height: calc(100dvh - 3rem);
   width: fit-content;

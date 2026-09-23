@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "version": "0.1.4",
-  "monorepo_commit": "aaa20fc4427a39a90c6ab4647bd5496628c88c35",
+  "version": "0.1.5",
+  "monorepo_commit": "80b4e6250dbf61ba83bb530d069905f0ff577db2",
   "files": [
     {
       "path": ".gitignore",
@@ -21,7 +21,7 @@
     },
     {
       "path": "bun.lock",
-      "sha256": "d61a59f6f6d9d9b41c0bb547627674684f533e10d57f33c3d2c39137b1a32a3f"
+      "sha256": "4482744b744a24274e20243efd0d8bf77579f96540a6dd90b086a74809cf0fe9"
     },
     {
       "path": "code/.prettierignore",
@@ -33,11 +33,31 @@
     },
     {
       "path": "code/astrohacker/ts/ui/package.json",
-      "sha256": "f2e653a942cca9b36fa8e5b0d74743d92d14bd66ca0aa386cbc31e85f8ac7425"
+      "sha256": "d99bf371060df989419ca48749e9919ba223e8fdabf960bc2fc63d016f638a35"
     },
     {
       "path": "code/astrohacker/ts/ui/prettier.config.mjs",
       "sha256": "4615ff0137fd6946505ce5e9db6565e1ef7cb967e4c9a58f309fa32d6d65487f"
+    },
+    {
+      "path": "code/astrohacker/ts/ui/src/components/button-group.tsx",
+      "sha256": "c9636ea74c3d961155f6135355b4332c7a39160134346f76857cce8fe5d64033"
+    },
+    {
+      "path": "code/astrohacker/ts/ui/src/components/button.tsx",
+      "sha256": "62a64037aa03f18450b1d86d2241162e9265f5b25e51f07468489f8cd0c6338f"
+    },
+    {
+      "path": "code/astrohacker/ts/ui/src/components/motion-mode.tsx",
+      "sha256": "4a23bdf4b4189fe88bd1cfe670486deb89a1d2b75956e04c06f2b6b4f28bb212"
+    },
+    {
+      "path": "code/astrohacker/ts/ui/src/components/motion-mode/context.ts",
+      "sha256": "4a69176dacf5d3c617de1f23a92afb4b41c70a7f3ea7b0fa7323900567d98874"
+    },
+    {
+      "path": "code/astrohacker/ts/ui/src/components/motion-mode/index.ts",
+      "sha256": "b63a97787f1d0bd7acbb9ea722d5c64f0fbd65f6ae7a683d51381b0094a1ea30"
     },
     {
       "path": "code/astrohacker/ts/ui/src/components/motion-mode/state.ts",
@@ -92,6 +112,10 @@
       "sha256": "1fd56ec60dfb9101da0a3692ef612f41feb1a3ebeb5005927d52ee8cbb550e72"
     },
     {
+      "path": "code/astrohacker/ts/ui/src/components/toggle-group.tsx",
+      "sha256": "4cf5b2a19963912da3d7611e0e7999369195a84ba269d8e3da05371d4768141c"
+    },
+    {
       "path": "code/astrohacker/ts/ui/src/styles/styles.css",
       "sha256": "14e6451b498aed2dd53903618d7be87e9b93c26a0fefe120785a514edd07c324"
     },
@@ -137,7 +161,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/app.css",
-      "sha256": "5292e5eb2ff63f198b05e13bbfd4ccd6eb095ece54e0ccf0eb29515663a2e499"
+      "sha256": "0f6bb7901e15cf8c0bb3054c49ae0e40f5a68486ea2a1b68896d4a6ae8312c93"
     },
     {
       "path": "code/quikopen/ts/quik/app/assets.d.ts",
@@ -145,7 +169,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/embedded-version.ts",
-      "sha256": "ecdb304fffa35bcd29c66a56c9371a78a4d96ddbdb5bd748fa61b56a6f3f1fbb"
+      "sha256": "4132ed23ed2181f9bb61fce1ccae7646d163ac5c5ee5feb50ecec2e6fac71d39"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/geometry.test.ts",
@@ -265,7 +289,11 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/components/viewer-page.tsx",
-      "sha256": "7fc0ddc55fe2b3312addae00b2311b5f033d67efe66985149f25fbe1de319971"
+      "sha256": "922b0efc2f06813974d6f7912d22b55cfdcacb90362bd3ed3689c5db70b451dc"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/components/zoom-control.tsx",
+      "sha256": "c00af2409c985b16a42fffacd8fca1d224a689d1d1aee944ceb2213ce1794368"
     },
     {
       "path": "code/quikopen/ts/quik/app/entry.client.tsx",
@@ -282,6 +310,14 @@
     {
       "path": "code/quikopen/ts/quik/app/lib/image-revision.ts",
       "sha256": "4d28444fcd158a90e319497b7ab4a444192157d1554b9ae57178274d1d8bae36"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/lib/image-zoom.test.ts",
+      "sha256": "08f56743e2e7ec84cdf8d5fb687abfecabf13b5d0c994ebee3144369dada65e5"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/lib/image-zoom.ts",
+      "sha256": "d6b5b0a703c90e00eb8650a0ac87a3209404434f0f8841ed3c21e8903a18214d"
     },
     {
       "path": "code/quikopen/ts/quik/app/lib/utils.ts",
@@ -301,7 +337,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/stack.contract.test.ts",
-      "sha256": "df9a6467c34c6d1a355476232c60cd109e890bc4e8ea45153abeed4e7ee73da9"
+      "sha256": "2cd7b2b87c3900e281b34758b128b04b1b222d1f24389fd07707d85d11c0b609"
     },
     {
       "path": "code/quikopen/ts/quik/cli.ts",
@@ -389,7 +425,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/package.json",
-      "sha256": "0c277b9ac434f6f773d3f144bed219e6ca537edb7f93f10e3c4d5e27ec99c811"
+      "sha256": "c3af404d5ecbea372d2690435b6487038b4f89bf6a1db2d1754c25b078c1e994"
     },
     {
       "path": "code/quikopen/ts/quik/prettier.config.mjs",
@@ -421,7 +457,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/public/styles/quik.css",
-      "sha256": "9db777d7d72293f9a844fedca79fd6b17537747a434c68c075f33c8e8bc9d891"
+      "sha256": "fa43242580b4915d24c1c66a1e763ac2e8c14727331847d1375acb95ea5bde2c"
     },
     {
       "path": "code/quikopen/ts/quik/react-router.config.ts",
@@ -433,7 +469,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/test/native-runtime.integration.test.ts",
-      "sha256": "97a24a91a2db7ae1c9305e1d55c04116da1b0c92b7670c40afc0b95c1a880776"
+      "sha256": "de2059a1ace8d4a7b092342097fee07f02695a0939b2cb624c46d5272588dfea"
     },
     {
       "path": "code/quikopen/ts/quik/test/runtime-fixture.ts",

@@ -86,8 +86,8 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
 
   test("card uses natural SVG size with min, max, and inner scroll", () => {
     const css = readFileSync(join(pkgRoot, "app/app.css"), "utf8");
-    expect(css).toContain("min-width: 20rem");
-    expect(css).toContain("min-height: 16rem");
+    expect(css).toContain("min-width: 32rem");
+    expect(css).toContain("min-height: 18rem");
     expect(css).toContain("max-width: calc(100vw - 3rem)");
     expect(css).toContain("max-height: calc(100dvh - 3rem)");
     expect(css).toMatch(/\.quik-stage[\s\S]*overflow:\s*auto/);
@@ -165,13 +165,25 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
     expect(page).toContain('data-testid="quik-header"');
     expect(page).toContain("flex-col");
     expect(page).toContain('data-testid="quik-header-chrome"');
+    expect(page).toContain('data-testid="quik-header-controls"');
     expect(page).toContain('data-testid="quik-filename"');
     const chromeStart = page.indexOf('data-testid="quik-header-chrome"');
-    const chromeEnd = page.indexOf("quik-filename");
-    const chrome = page.slice(chromeStart, chromeEnd);
-    expect(chrome).toContain("BackgroundSwatches");
+    const controlsStart = page.indexOf('data-testid="quik-header-controls"');
+    const filenameStart = page.indexOf("quik-filename");
+    expect(controlsStart).toBeGreaterThan(chromeStart);
+    expect(filenameStart).toBeGreaterThan(controlsStart);
+    const chrome = page.slice(chromeStart, controlsStart);
+    const controls = page.slice(controlsStart, filenameStart);
     expect(chrome).toContain("ExitButton");
-    expect(chrome).not.toContain("quik-filename");
+    expect(chrome).toContain("MotionModeSelector");
+    expect(chrome).not.toContain("BackgroundSwatches");
+    expect(chrome).not.toContain("ZoomControl");
+    expect(controls).toContain("BackgroundSwatches");
+    expect(controls).toContain("ZoomControl");
+    expect(controls).not.toContain("MotionModeSelector");
+    expect(page).toContain("storageKey={MOTION_STORAGE_KEY}");
+    expect(page).toContain('const MOTION_STORAGE_KEY = "quik.motion-mode.v1"');
+    expect(controls).not.toContain("quik-filename");
     expect(
       existsSync(
         join(

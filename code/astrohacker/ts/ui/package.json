@@ -38,7 +38,11 @@
     "./surfaces": "./src/surfaces.ts",
     "./styles.css": "./src/styles/styles.css",
     "./package.json": "./package.json",
-    "./space-rain": "./src/components/space-rain.tsx"
+    "./button": "./src/components/button.tsx",
+    "./button-group": "./src/components/button-group.tsx",
+    "./toggle-group": "./src/components/toggle-group.tsx",
+    "./space-rain": "./src/components/space-rain.tsx",
+    "./motion-mode": "./src/components/motion-mode/index.ts"
   },
   "license": "MIT"
 }

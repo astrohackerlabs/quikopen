@@ -514,7 +514,7 @@
     },
     "code/quikopen/ts/quik": {
       "name": "@astrohacker/quikopen",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "bin": {
         "quikopen": "./dist/quikopen"
       },

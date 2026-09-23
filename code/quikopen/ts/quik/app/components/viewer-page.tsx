@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
+import {
+  MotionModeProvider,
+  MotionModeSelector,
+  useMotionMode,
+} from "@astrohacker/ui/motion-mode";
 import { SpaceRain } from "@astrohacker/ui/space-rain";
 import { shellPanel } from "@astrohacker/ui/surfaces";
 import { cn } from "~/lib/utils";
@@ -8,18 +13,36 @@ import {
   BackgroundSwatches,
   type StageBg,
 } from "~/components/background-swatches";
+import { ZoomControl } from "~/components/zoom-control";
 import {
   applyRevision,
   imageUrlWithRevision,
   REVISION_POLL_MS,
   type RevisionActionData,
 } from "~/lib/image-revision";
+import { ZOOM_DEFAULT, zoomSize } from "~/lib/image-zoom";
+
+const MOTION_STORAGE_KEY = "quik.motion-mode.v1";
 
 export function ViewerPage(): React.JSX.Element {
+  return (
+    <MotionModeProvider storageKey={MOTION_STORAGE_KEY}>
+      <QuikViewer />
+    </MotionModeProvider>
+  );
+}
+
+function QuikViewer(): React.JSX.Element {
+  const { mode, ready, setMode } = useMotionMode();
   const [name, setName] = useState("");
   const [imageSrc, setImageSrc] = useState("");
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [bg, setBg] = useState<StageBg>("dark");
+  const [zoom, setZoom] = useState(ZOOM_DEFAULT);
+  const [natural, setNatural] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
   const fetcher = useFetcher<RevisionActionData>();
   const fetcherRef = useRef(fetcher);
   const appliedRef = useRef<number | null>(null);
@@ -89,9 +112,15 @@ export function ViewerPage(): React.JSX.Element {
     setImageSrc(next);
   }, [fetcher.data]);
 
+  useEffect(() => {
+    setNatural(null);
+  }, [imageSrc]);
+
   return (
     <div data-testid="quik" className="quik-root relative min-h-dvh">
-      <SpaceRain data-testid="quik-space-rain" />
+      {ready ? (
+        <SpaceRain motionMode={mode} data-testid="quik-space-rain" />
+      ) : null}
       <div
         aria-hidden="true"
         className="bg-[rgba(17, 18, 25,0.55)] pointer-events-none fixed inset-0 z-[2]"
@@ -120,8 +149,15 @@ export function ViewerPage(): React.JSX.Element {
               <p className="m-0 min-w-0 flex-1 font-heading text-[0.85rem] font-bold tracking-[0.28em] text-primary">
                 QuikOpen
               </p>
-              <BackgroundSwatches value={bg} onChange={setBg} />
+              <MotionModeSelector value={mode} onValueChange={setMode} />
               <ExitButton />
+            </div>
+            <div
+              data-testid="quik-header-controls"
+              className="flex w-full items-center gap-3"
+            >
+              <BackgroundSwatches value={bg} onChange={setBg} />
+              <ZoomControl percent={zoom} onChange={setZoom} />
             </div>
             <p
               className="m-0 w-full truncate text-[0.75rem] tracking-[0.08em] text-muted"
@@ -148,10 +184,22 @@ export function ViewerPage(): React.JSX.Element {
                 key={imageSrc}
                 src={imageSrc}
                 hidden={failedSrc === imageSrc}
+                style={
+                  zoom === ZOOM_DEFAULT || natural === null
+                    ? undefined
+                    : {
+                        width: zoomSize(natural.width, zoom),
+                        height: zoomSize(natural.height, zoom),
+                      }
+                }
                 onError={() => {
                   setFailedSrc(imageSrc);
                 }}
-                onLoad={() => {
+                onLoad={(event) => {
+                  setNatural({
+                    width: event.currentTarget.naturalWidth,
+                    height: event.currentTarget.naturalHeight,
+                  });
                   setFailedSrc(null);
                 }}
                 alt={name || "Image"}

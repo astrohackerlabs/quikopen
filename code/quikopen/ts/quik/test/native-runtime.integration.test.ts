@@ -556,6 +556,202 @@ test("browser compiled image refreshes when the file changes", async () => {
   }
 }, 60000);
 
+test("browser compiled image zooms from the header stepper", async () => {
+  const owned = new RuntimeFixture();
+  let failed = true;
+  const evidence = resolve(root, "../../../../dist/quikopen/zoom/exp1");
+  mkdirSync(evidence, { recursive: true });
+  let browser: Browser | undefined;
+  try {
+    const { child, url } = await openImage(
+      owned,
+      resolve(root, "fixtures/sample.svg"),
+      "compiled",
+    );
+    browser = await chromium.launch({ channel: "chrome", headless: true });
+    const page = await browser.newPage({
+      viewport: { width: 1000, height: 800 },
+      deviceScaleFactor: 1,
+    });
+    writeFileSync(resolve(evidence, "browser-version.txt"), browser.version());
+    await page.goto(url.href);
+    const image = page.getByTestId("quik-image");
+    await browserExpect(image).toBeVisible();
+    const shell = await page.getByTestId("quik-shell").boundingBox();
+    if (shell === null) throw new Error("shell has no box");
+    expect(shell.width).toBeGreaterThanOrEqual(512);
+    expect(shell.height).toBeGreaterThanOrEqual(288);
+    const natural = await image.evaluate(
+      (node) => (node as HTMLImageElement).naturalWidth,
+    );
+    expect(natural).toBeGreaterThan(0);
+    const painted = async (): Promise<number> =>
+      image.evaluate((node) => (node as HTMLImageElement).clientWidth);
+    const scaled = (percent: number): number =>
+      Math.round((natural * percent) / 100);
+    expect(await painted()).toBe(scaled(100));
+    await page.getByTestId("quik-bg-bright").click();
+    const before = await renderedPixels(page, resolve(evidence, "100.png"));
+
+    const chrome = page.getByTestId("quik-header-chrome");
+    const controls = page.getByTestId("quik-header-controls");
+    await browserExpect(chrome.getByTestId("quik-exit")).toBeVisible();
+    await browserExpect(chrome.getByTestId("quik-bg")).toHaveCount(0);
+    await browserExpect(chrome.getByTestId("quik-zoom")).toHaveCount(0);
+    await browserExpect(controls.getByTestId("quik-bg")).toBeVisible();
+    await browserExpect(controls.getByTestId("quik-zoom")).toBeVisible();
+    const chromeBox = await chrome.boundingBox();
+    const controlsBox = await controls.boundingBox();
+    const filenameBox = await page.getByTestId("quik-filename").boundingBox();
+    if (chromeBox === null || controlsBox === null || filenameBox === null) {
+      throw new Error("header row has no box");
+    }
+    expect(controlsBox.y).toBeGreaterThan(chromeBox.y);
+    expect(filenameBox.y).toBeGreaterThan(controlsBox.y);
+    const zoomIn = page.getByRole("button", { name: "Zoom in" });
+    const zoomOut = page.getByRole("button", { name: "Zoom out" });
+    await browserExpect(zoomIn).toBeVisible();
+    await browserExpect(zoomOut).toBeVisible();
+    const percent = page.getByTestId("quik-zoom-percent");
+    await browserExpect(percent).toHaveText("100%");
+    const percentWidth = async (): Promise<number> =>
+      percent.evaluate((node) => node.getBoundingClientRect().width);
+    const widthAt100 = await percentWidth();
+    await zoomIn.click();
+    await browserExpect.poll(painted).toBe(scaled(125));
+    await browserExpect(page.getByTestId("quik-zoom")).toContainText("125%");
+    await zoomIn.click();
+    await browserExpect.poll(painted).toBe(scaled(150));
+    await zoomOut.click();
+    await browserExpect.poll(painted).toBe(scaled(125));
+    expect(await painted()).toBe(scaled(125));
+
+    for (let step = 0; step < 4; step += 1) await zoomOut.click();
+    await browserExpect(zoomOut).toBeDisabled();
+    await browserExpect(percent).toHaveText("25%");
+    const widthAt25 = await percentWidth();
+    expect(await painted()).toBe(scaled(25));
+    for (let step = 0; step < 15; step += 1) await zoomIn.click();
+    await browserExpect(zoomIn).toBeDisabled();
+    await browserExpect(percent).toHaveText("400%");
+    const widthAt400 = await percentWidth();
+    expect(widthAt25).toBe(widthAt100);
+    expect(widthAt400).toBe(widthAt100);
+    expect(await painted()).toBe(scaled(400));
+    const exp2 = resolve(root, "../../../../dist/quikopen/zoom/exp2");
+    mkdirSync(exp2, { recursive: true });
+    await page.screenshot({ path: resolve(exp2, "controls-row.png") });
+    await browserExpect(page.getByTestId("quik-stage")).toHaveAttribute(
+      "data-bg",
+      "bright",
+    );
+    const after = await renderedPixels(page, resolve(evidence, "400.png"));
+    const beforeCenter = centerPixel(before.pixels, before.width);
+    const afterCenter = centerPixel(after.pixels, after.width);
+    expect(afterCenter[0]).toBeGreaterThan(200);
+    expect(afterCenter[0]).toBe(beforeCenter[0]);
+    await page.getByTestId("quik-exit").click();
+    await until(() => child.exitCode !== null, "zoom UI exit");
+    expect(await child.exited).toBe(0);
+    failed = false;
+  } finally {
+    try {
+      await browser?.close();
+    } finally {
+      await owned.close(failed);
+    }
+  }
+}, 60000);
+
+test("browser compiled motion selector drives the rain from the controls row", async () => {
+  const owned = new RuntimeFixture();
+  let failed = true;
+  const evidence = resolve(root, "../../../../dist/quikopen/motion/exp1");
+  mkdirSync(evidence, { recursive: true });
+  let browser: Browser | undefined;
+  try {
+    const { child, url } = await openImage(
+      owned,
+      resolve(root, "fixtures/sample.svg"),
+      "compiled",
+    );
+    browser = await chromium.launch({ channel: "chrome", headless: true });
+    const context = await browser.newContext({
+      viewport: { width: 1000, height: 800 },
+      deviceScaleFactor: 1,
+      reducedMotion: "reduce",
+    });
+    const page = await context.newPage();
+    writeFileSync(resolve(evidence, "browser-version.txt"), browser.version());
+    await page.goto(url.href);
+    const chrome = page.getByTestId("quik-header-chrome");
+    const controls = page.getByTestId("quik-header-controls");
+    await browserExpect(controls.getByLabel("Motion mode")).toHaveCount(0);
+    await browserExpect(chrome.getByLabel("Motion mode")).toBeVisible();
+    await browserExpect(
+      chrome.getByRole("radio", { name: "Motion", exact: true }),
+    ).toBeVisible();
+    await browserExpect(
+      chrome.getByRole("radio", { name: "No motion" }),
+    ).toBeVisible();
+    await browserExpect(
+      chrome.getByRole("radio", { name: "System" }),
+    ).toBeVisible();
+    const motionBox = await chrome.getByLabel("Motion mode").boundingBox();
+    const exitBox = await chrome.getByTestId("quik-exit").boundingBox();
+    if (motionBox === null || exitBox === null) {
+      throw new Error("motion or exit has no box");
+    }
+    expect(motionBox.x + motionBox.width).toBeLessThanOrEqual(exitBox.x + 1);
+    expect(Math.abs(motionBox.y - exitBox.y)).toBeLessThan(8);
+    await browserExpect(page.locator("[data-space-rain-canvas]")).toBeVisible();
+    expect(await rainIsStill(page)).toBe(true);
+
+    await chrome.getByRole("radio", { name: "Motion", exact: true }).click();
+    expect(await rainIsStill(page)).toBe(false);
+    await page.screenshot({ path: resolve(evidence, "motion.png") });
+
+    await chrome.getByRole("radio", { name: "No motion" }).click();
+    expect(await rainIsStill(page)).toBe(true);
+    await page.screenshot({ path: resolve(evidence, "no-motion.png") });
+
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await chrome.getByRole("radio", { name: "System" }).click();
+    expect(await rainIsStill(page)).toBe(false);
+
+    await page.getByTestId("quik-bg-bright").click();
+    await browserExpect(page.getByTestId("quik-stage")).toHaveAttribute(
+      "data-bg",
+      "bright",
+    );
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    await browserExpect(page.getByTestId("quik-zoom-percent")).toHaveText(
+      "125%",
+    );
+    await page.getByTestId("quik-exit").click();
+    await until(() => child.exitCode !== null, "motion UI exit");
+    expect(await child.exited).toBe(0);
+    failed = false;
+  } finally {
+    try {
+      await browser?.close();
+    } finally {
+      await owned.close(failed);
+    }
+  }
+}, 60000);
+
+async function rainCorner(page: Page): Promise<Buffer> {
+  return page.screenshot({ clip: { x: 0, y: 0, width: 160, height: 100 } });
+}
+
+async function rainIsStill(page: Page): Promise<boolean> {
+  const first = await rainCorner(page);
+  await page.waitForTimeout(500);
+  const second = await rainCorner(page);
+  return first.equals(second);
+}
+
 async function until(check: () => boolean, label: string): Promise<void> {
   const deadline = Date.now() + 8000;
   while (!check()) {

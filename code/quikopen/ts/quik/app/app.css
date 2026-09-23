@@ -27,8 +27,8 @@ body {
 .quik-shell {
   display: flex;
   flex-direction: column;
-  min-width: 20rem;
-  min-height: 16rem;
+  min-width: 32rem;
+  min-height: 18rem;
   max-width: calc(100vw - 3rem);
   max-height: calc(100dvh - 3rem);
   width: fit-content;
@@ -98,6 +98,21 @@ body {
 .quik-bg-swatch:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--ah-ring);
+}
+
+.quik-zoom {
+  height: 28px;
+}
+
+.quik-zoom-percent {
+  box-sizing: content-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 5ch;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .quik-image {
