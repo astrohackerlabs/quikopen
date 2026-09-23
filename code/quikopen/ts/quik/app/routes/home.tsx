@@ -1,5 +1,17 @@
 import type { Route } from "./+types/home";
 import { ViewerPage } from "~/components/viewer-page";
+import {
+  revisionFromRequest,
+  type RevisionActionData,
+} from "~/lib/image-revision";
+
+export function clientAction({
+  request,
+}: Route.ClientActionArgs): Promise<RevisionActionData> {
+  return revisionFromRequest(request, (input): Promise<Response> =>
+    fetch(input),
+  );
+}
 
 export function meta(): ReturnType<Route.MetaFunction> {
   return [

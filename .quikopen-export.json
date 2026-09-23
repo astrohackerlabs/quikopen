@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "version": "0.1.3",
-  "monorepo_commit": "81edb794e5e25dccbf707c66c0b626b0483088a4",
+  "version": "0.1.4",
+  "monorepo_commit": "aaa20fc4427a39a90c6ab4647bd5496628c88c35",
   "files": [
     {
       "path": ".gitignore",
@@ -21,7 +21,7 @@
     },
     {
       "path": "bun.lock",
-      "sha256": "d2fd014710df2bf04039846b9f1249a213fb4875c92eccc9d604c9b91bafed3e"
+      "sha256": "d61a59f6f6d9d9b41c0bb547627674684f533e10d57f33c3d2c39137b1a32a3f"
     },
     {
       "path": "code/.prettierignore",
@@ -145,7 +145,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/embedded-version.ts",
-      "sha256": "64ef4bbf99bfc89d90020bca421e3fc949eb1012597394a9482ed89a44d21780"
+      "sha256": "ecdb304fffa35bcd29c66a56c9371a78a4d96ddbdb5bd748fa61b56a6f3f1fbb"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/geometry.test.ts",
@@ -170,6 +170,14 @@
     {
       "path": "code/quikopen/ts/quik/app/cli/image-path.ts",
       "sha256": "05af6a729d0a73cf0a27ea18dd77fefb2d391fa76e4cfd785630ec505ec12cda"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/cli/image-watch.test.ts",
+      "sha256": "e6fee4ce440981427d5463e334caf868f9490fc85cb06cc087a08e82b3ffbff1"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/cli/image-watch.ts",
+      "sha256": "a251b2c43bee1fbfbd7fe6b86a81a2103f98ad59dca447913e179be60680bc07"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/leb128-wire.test.ts",
@@ -197,7 +205,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/process-runtime.ts",
-      "sha256": "bc82fbb6bdd1754ab7673f91d498c260cab8f6363381b544e180ff3beb513ff5"
+      "sha256": "7d40f77b753763fbd0aa7dbfeed96058d5d30b40ab868438914366112f4caa76"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/product-identity.test.ts",
@@ -257,7 +265,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/components/viewer-page.tsx",
-      "sha256": "614225efa0d21f2e2c7b159ad5b4f2d15c98b10d8b9a9f1cf3f394b0fd89f8d3"
+      "sha256": "7fc0ddc55fe2b3312addae00b2311b5f033d67efe66985149f25fbe1de319971"
     },
     {
       "path": "code/quikopen/ts/quik/app/entry.client.tsx",
@@ -266,6 +274,14 @@
     {
       "path": "code/quikopen/ts/quik/app/entry.server.tsx",
       "sha256": "7dc6c0d257ad8142010544a0543a4ed28b2db6d76df3bbbf62c163f5838423f7"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/lib/image-revision.test.ts",
+      "sha256": "2791a403c0c590093d93a8d704db5f8f3b6ec1c92ae25b9aad0ef9be78870d48"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/lib/image-revision.ts",
+      "sha256": "4d28444fcd158a90e319497b7ab4a444192157d1554b9ae57178274d1d8bae36"
     },
     {
       "path": "code/quikopen/ts/quik/app/lib/utils.ts",
@@ -281,7 +297,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/routes/home.tsx",
-      "sha256": "98e95805bbd40cc03e8af763b89824408bc7ad1fa94ca0c594e211c0b399480c"
+      "sha256": "c3f6730387ab1c8305e818f66735e5372eb2ef1c8b979694b61086b942064045"
     },
     {
       "path": "code/quikopen/ts/quik/app/stack.contract.test.ts",
@@ -337,7 +353,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/fixtures/sample.svg",
-      "sha256": "b66577ae557dbf2399b5e4c2ace5ced7937d2c9d2d97197a0bed9e506670ed2f"
+      "sha256": "0b13d5a4307aac97ca2ed3adce968d4b853ec10b68d67f4a8a0cf6c68c188aa0"
     },
     {
       "path": "code/quikopen/ts/quik/fixtures/smoke.nu",
@@ -373,7 +389,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/package.json",
-      "sha256": "0831cb3d4009468ee1952588f4477b1dad24375461152e52e8296af1014234d0"
+      "sha256": "0c277b9ac434f6f773d3f144bed219e6ca537edb7f93f10e3c4d5e27ec99c811"
     },
     {
       "path": "code/quikopen/ts/quik/prettier.config.mjs",
@@ -417,7 +433,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/test/native-runtime.integration.test.ts",
-      "sha256": "ab0e67f3b20377fac43c1468e109e770b5c0da8524e2252d17ffb1267118b6ba"
+      "sha256": "97a24a91a2db7ae1c9305e1d55c04116da1b0c92b7670c40afc0b95c1a880776"
     },
     {
       "path": "code/quikopen/ts/quik/test/runtime-fixture.ts",

@@ -18,6 +18,11 @@ import {
   type OverlayOptions,
 } from "./termsurf-client.ts";
 import { watchEscInput } from "./tty-esc.ts";
+import {
+  revisionResponse,
+  startImageWatch,
+  type ImageWatch,
+} from "./image-watch.ts";
 
 export interface ImageFile {
   path: string;
@@ -67,6 +72,7 @@ export async function startProcess(
 
   const staticHttp = createStaticHttpHandler(env);
   const token = mintToken();
+  const watch = startImageWatch(image.path);
   let queuedExit: string | null = null;
 
   const handles: ProcessHandles = {
@@ -91,6 +97,7 @@ export async function startProcess(
           staticHttp,
           token,
           image,
+          watch,
           onExit: () => {
             handles.requestExit("ui-x");
           },
@@ -128,6 +135,7 @@ export async function startProcess(
   handles.close = (): void => {
     if (closed) return;
     closed = true;
+    watch.close();
     try {
       handles.termsurf?.close();
     } catch {
@@ -154,6 +162,7 @@ async function handleHttp(
     staticHttp: StaticHttpHandler;
     token: string;
     image: ImageFile;
+    watch: ImageWatch;
     onExit: () => void;
   },
 ): Promise<Response> {
@@ -177,8 +186,13 @@ async function handleHttp(
         "content-type": again.mime,
         "x-content-type-options": "nosniff",
         "content-disposition": imageDisposition(again.name),
+        "cache-control": "no-store",
       },
     });
+  }
+
+  if (url.pathname === "/__quik/revision" && request.method === "GET") {
+    return revisionResponse(ctx.token, tokenFromUrl(url), ctx.watch.snapshot());
   }
 
   if (url.pathname === "/__quik/meta" && request.method === "GET") {

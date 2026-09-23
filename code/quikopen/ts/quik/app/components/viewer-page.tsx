@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useFetcher } from "react-router";
 import { SpaceRain } from "@astrohacker/ui/space-rain";
 import { shellPanel } from "@astrohacker/ui/surfaces";
 import { cn } from "~/lib/utils";
@@ -7,19 +8,36 @@ import {
   BackgroundSwatches,
   type StageBg,
 } from "~/components/background-swatches";
+import {
+  applyRevision,
+  imageUrlWithRevision,
+  REVISION_POLL_MS,
+  type RevisionActionData,
+} from "~/lib/image-revision";
 
 export function ViewerPage(): React.JSX.Element {
   const [name, setName] = useState("");
   const [imageSrc, setImageSrc] = useState("");
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [bg, setBg] = useState<StageBg>("dark");
+  const fetcher = useFetcher<RevisionActionData>();
+  const fetcherRef = useRef(fetcher);
+  const appliedRef = useRef<number | null>(null);
+  const imageSrcRef = useRef("");
+  const sawSuccess = useRef(false);
+  const timerRef = useRef<number | null>(null);
+  fetcherRef.current = fetcher;
+  imageSrcRef.current = imageSrc;
 
   useEffect(() => {
     const page = new URL(window.location.href);
     const fromQuery = page.searchParams.get("name");
     if (fromQuery) setName(fromQuery);
     const q = page.search;
-    setImageSrc(`/image${q}`);
+    const initial = `/image${q}`;
+    imageSrcRef.current = initial;
+    setImageSrc(initial);
+    const token = page.searchParams.get("token") ?? "";
     void fetch(`/__quik/meta${q}`)
       .then((r) => r.json() as Promise<{ ok?: boolean; name?: string }>)
       .then((body) => {
@@ -28,7 +46,48 @@ export function ViewerPage(): React.JSX.Element {
       .catch(() => {
         /* Vite dev has no process meta */
       });
+
+    const submit = (): void => {
+      if (timerRef.current === null) return;
+      const current = fetcherRef.current;
+      if (current.state !== "idle") return;
+      const seen = appliedRef.current;
+      void current.submit(
+        { token, seen: seen === null ? "" : String(seen) },
+        { method: "post", action: "/?index" },
+      );
+    };
+    timerRef.current = window.setInterval(submit, REVISION_POLL_MS);
+    submit();
+    return (): void => {
+      if (timerRef.current !== null) window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    };
   }, []);
+
+  useEffect(() => {
+    const data = fetcher.data;
+    if (!data) return;
+    if (!data.ok) {
+      if (!sawSuccess.current && timerRef.current !== null) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+    sawSuccess.current = true;
+    const decision = applyRevision(appliedRef.current, data);
+    appliedRef.current = decision.applied;
+    if (!decision.changed || decision.applied === null) return;
+    if (decision.showError) {
+      setFailedSrc(imageSrcRef.current);
+      return;
+    }
+    setFailedSrc(null);
+    const next = imageUrlWithRevision(window.location.search, decision.applied);
+    imageSrcRef.current = next;
+    setImageSrc(next);
+  }, [fetcher.data]);
 
   return (
     <div data-testid="quik" className="quik-root relative min-h-dvh">

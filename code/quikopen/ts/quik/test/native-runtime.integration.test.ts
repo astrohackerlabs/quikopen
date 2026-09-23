@@ -7,6 +7,7 @@ import {
   readdirSync,
   unlinkSync,
   mkdirSync,
+  renameSync,
 } from "node:fs";
 import { basename, resolve } from "node:path";
 import { Buffer } from "node:buffer";
@@ -147,6 +148,159 @@ for (const mode of ["source", "compiled"] as const) {
   }, 60000);
 }
 
+async function revisionOf(pageUrl: URL): Promise<{
+  ok: boolean;
+  revision: number;
+  available: boolean;
+  status?: string;
+}> {
+  const endpoint = new URL("/__quik/revision", pageUrl);
+  endpoint.search = pageUrl.search;
+  const response = await fetch(endpoint);
+  expect(response.status).toBe(200);
+  return (await response.json()) as {
+    ok: boolean;
+    revision: number;
+    available: boolean;
+    status?: string;
+  };
+}
+
+async function waitRevision(
+  pageUrl: URL,
+  ready: (body: {
+    revision: number;
+    available: boolean;
+    status?: string;
+  }) => boolean,
+): Promise<{ revision: number; available: boolean; status?: string }> {
+  const deadline = Date.now() + 2000;
+  let body = await revisionOf(pageUrl);
+  while (!ready(body)) {
+    if (Date.now() > deadline) {
+      throw new Error(`revision stayed ${JSON.stringify(body)}`);
+    }
+    await Bun.sleep(20);
+    body = await revisionOf(pageUrl);
+  }
+  return body;
+}
+
+for (const mode of ["source", "compiled"] as const) {
+  test(`${mode} file watch refreshes revision without polling the disk`, async () => {
+    const owned = new RuntimeFixture();
+    let failed = true;
+    try {
+      const fileA = resolve(owned.dir, "drawing.svg");
+      const fileB = resolve(owned.dir, "other.svg");
+      const first = Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#ff0000"/></svg>`,
+      );
+      const second = Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#00ff00"/></svg>`,
+      );
+      const third = Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#0000ff"/></svg>`,
+      );
+      writeFileSync(fileA, first);
+      writeFileSync(fileB, first);
+      const a = await openImage(owned, fileA, mode);
+      const b = await openImage(owned, fileB, mode);
+      expect(await revisionOf(a.url)).toEqual({
+        ok: true,
+        revision: 1,
+        available: true,
+      });
+      expect(await revisionOf(b.url)).toEqual({
+        ok: true,
+        revision: 1,
+        available: true,
+      });
+      const denied = new URL("/__quik/revision", a.url);
+      denied.searchParams.set("token", "nope");
+      expect((await fetch(denied)).status).toBe(404);
+
+      const started = Date.now();
+      for (let i = 0; i < 10; i++) {
+        expect(await revisionOf(a.url)).toEqual({
+          ok: true,
+          revision: 1,
+          available: true,
+        });
+      }
+      expect(Date.now() - started).toBeLessThan(1000);
+
+      writeFileSync(fileA, second);
+      const edited = await waitRevision(a.url, (body) => body.revision > 1);
+      const imageA = new URL("/image", a.url);
+      imageA.search = a.url.search;
+      const editedResponse = await fetch(imageA);
+      expect(editedResponse.headers.get("cache-control")).toBe("no-store");
+      expect(Buffer.from(await editedResponse.arrayBuffer())).toEqual(second);
+      const versioned = new URL(imageA);
+      versioned.searchParams.set("v", String(edited.revision));
+      expect(Buffer.from(await (await fetch(versioned)).arrayBuffer())).toEqual(
+        second,
+      );
+      const head = await fetch(imageA, { method: "HEAD" });
+      expect(head.headers.get("cache-control")).toBe("no-store");
+      expect(Buffer.from(await head.arrayBuffer())).toEqual(Buffer.alloc(0));
+
+      writeFileSync(resolve(owned.dir, "sibling.svg"), first);
+      await Bun.sleep(400);
+      expect((await revisionOf(a.url)).revision).toBe(edited.revision);
+
+      const renamed = resolve(owned.dir, "next.svg");
+      writeFileSync(renamed, third);
+      renameSync(renamed, fileA);
+      const replaced = await waitRevision(
+        a.url,
+        (body) => body.revision > edited.revision && body.available,
+      );
+      expect(Buffer.from(await (await fetch(imageA)).arrayBuffer())).toEqual(
+        third,
+      );
+
+      writeFileSync(fileA, second);
+      await waitRevision(a.url, (body) => body.revision > replaced.revision);
+      expect(await revisionOf(b.url)).toEqual({
+        ok: true,
+        revision: 1,
+        available: true,
+      });
+
+      unlinkSync(fileA);
+      const missing = await waitRevision(a.url, (body) => !body.available);
+      expect(missing.status).toBe("missing");
+      expect((await fetch(imageA)).status).toBe(404);
+      writeFileSync(fileA, first);
+      await waitRevision(a.url, (body) => body.available);
+      expect(Buffer.from(await (await fetch(imageA)).arrayBuffer())).toEqual(
+        first,
+      );
+      writeFileSync(fileA, Buffer.alloc(IMAGE_MAX_BYTES + 1));
+      const huge = await waitRevision(
+        a.url,
+        (body) => body.status === "too-large",
+      );
+      expect(huge.available).toBe(false);
+
+      await a.child.stdin.write(new Uint8Array([27]));
+      await a.child.stdin.flush();
+      await until(() => a.child.exitCode !== null, "watch process exit");
+      expect(await a.child.exited).toBe(0);
+      expect((await revisionOf(b.url)).revision).toBe(1);
+      await b.child.stdin.write(new Uint8Array([27]));
+      await b.child.stdin.flush();
+      await until(() => b.child.exitCode !== null, "second watch exit");
+      expect(await b.child.exited).toBe(0);
+      failed = false;
+    } finally {
+      await owned.close(failed);
+    }
+  }, 60000);
+}
+
 // Read pixels from an image-only screenshot: SpaceRain cannot satisfy these assertions.
 async function renderedPixels(
   page: Page,
@@ -172,6 +326,23 @@ async function renderedPixels(
       ),
     };
   }, png.toString("base64"));
+}
+
+function centerPixel(
+  pixels: number[],
+  width: number,
+): [number, number, number] {
+  const height = pixels.length / 4 / width;
+  const x = Math.floor(width / 2);
+  const y = Math.floor(height / 2);
+  const offset = (y * width + x) * 4;
+  const red = pixels[offset];
+  const green = pixels[offset + 1];
+  const blue = pixels[offset + 2];
+  if (red === undefined || green === undefined || blue === undefined) {
+    throw new Error("center pixel is outside the screenshot");
+  }
+  return [red, green, blue];
 }
 
 test("browser compiled images decode, orient, animate, expose alpha and report corruption", async () => {
@@ -307,6 +478,83 @@ test("browser compiled images decode, orient, animate, expose alpha and report c
     }
   }
 }, 120000);
+
+test("browser compiled image refreshes when the file changes", async () => {
+  const owned = new RuntimeFixture();
+  let failed = true;
+  const evidence = resolve(root, "../../../../dist/quikopen/file-refresh/exp1");
+  mkdirSync(evidence, { recursive: true });
+  let browser: Browser | undefined;
+  const red = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#ff0000"/></svg>`;
+  const blue = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#0000ff"/></svg>`;
+  const green = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#00ff00"/></svg>`;
+  try {
+    const file = resolve(owned.dir, "live.svg");
+    writeFileSync(file, red);
+    const { child, url } = await openImage(owned, file, "compiled");
+    browser = await chromium.launch({ channel: "chrome", headless: true });
+    const page = await browser.newPage({
+      viewport: { width: 1000, height: 800 },
+      deviceScaleFactor: 1,
+    });
+    writeFileSync(resolve(evidence, "browser-version.txt"), browser.version());
+    await page.goto(url.href);
+    const image = page.getByTestId("quik-image");
+    await browserExpect(image).toBeVisible();
+    const stable = await image.getAttribute("src");
+    expect(stable).not.toContain("v=");
+    await page.waitForTimeout(500);
+    expect(await image.getAttribute("src")).toBe(stable);
+    await page.getByTestId("quik-bg-bright").click();
+    await browserExpect(page.getByTestId("quik-stage")).toHaveAttribute(
+      "data-bg",
+      "bright",
+    );
+    const before = await renderedPixels(page, resolve(evidence, "before.png"));
+    const beforeCenter = centerPixel(before.pixels, before.width);
+    expect(beforeCenter[0]).toBeGreaterThan(200);
+    expect(beforeCenter[2]).toBeLessThan(30);
+
+    writeFileSync(file, blue);
+    await browserExpect
+      .poll(async () => await image.getAttribute("src"), { timeout: 5000 })
+      .toContain("v=");
+    await browserExpect
+      .poll(
+        async () => {
+          const shot = await renderedPixels(
+            page,
+            resolve(evidence, "after.png"),
+          );
+          const [red, , blue] = centerPixel(shot.pixels, shot.width);
+          return red < 30 && blue > 200;
+        },
+        { timeout: 5000 },
+      )
+      .toBe(true);
+    await browserExpect(page.getByTestId("quik-stage")).toHaveAttribute(
+      "data-bg",
+      "bright",
+    );
+
+    unlinkSync(file);
+    await browserExpect(page.getByTestId("quik-image-error")).toBeVisible();
+    await browserExpect(page.getByTestId("quik-exit")).toBeVisible();
+    writeFileSync(file, green);
+    await browserExpect(image).toBeVisible();
+    await browserExpect(page.getByTestId("quik-image-error")).toHaveCount(0);
+    await page.getByTestId("quik-exit").click();
+    await until(() => child.exitCode !== null, "refresh UI exit");
+    expect(await child.exited).toBe(0);
+    failed = false;
+  } finally {
+    try {
+      await browser?.close();
+    } finally {
+      await owned.close(failed);
+    }
+  }
+}, 60000);
 
 async function until(check: () => boolean, label: string): Promise<void> {
   const deadline = Date.now() + 8000;
