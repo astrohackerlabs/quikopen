@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "version": "0.1.5",
-  "monorepo_commit": "80b4e6250dbf61ba83bb530d069905f0ff577db2",
+  "version": "0.1.6",
+  "monorepo_commit": "dcdc38176081d1f084241b3a2fbf05cdeb928a41",
   "files": [
     {
       "path": ".gitignore",
@@ -21,7 +21,7 @@
     },
     {
       "path": "bun.lock",
-      "sha256": "4482744b744a24274e20243efd0d8bf77579f96540a6dd90b086a74809cf0fe9"
+      "sha256": "60a47afc702b5fa8f75314420c25b65865b6f3e3a4f67d0fb1f53cdd3590ddc5"
     },
     {
       "path": "code/.prettierignore",
@@ -49,7 +49,7 @@
     },
     {
       "path": "code/astrohacker/ts/ui/src/components/motion-mode.tsx",
-      "sha256": "4a23bdf4b4189fe88bd1cfe670486deb89a1d2b75956e04c06f2b6b4f28bb212"
+      "sha256": "88b7d0e1c3eb8992949964c738cae34af5cf1cfb5ab240198654e8ce805d055b"
     },
     {
       "path": "code/astrohacker/ts/ui/src/components/motion-mode/context.ts",
@@ -61,11 +61,11 @@
     },
     {
       "path": "code/astrohacker/ts/ui/src/components/motion-mode/state.ts",
-      "sha256": "d9216b20903e9e2aa05e120316cca783a387158382373cec209bbd1310d64f01"
+      "sha256": "9e8f177b530235b4b3fbf1e925bda69092f189caaa78f98911f41def29a9d9c9"
     },
     {
       "path": "code/astrohacker/ts/ui/src/components/space-rain.tsx",
-      "sha256": "bcb02f689b510088fa108731bb1ef50f5f72bac15e3a7d6c2f3c545d478b8953"
+      "sha256": "4b4771131d40d04ed74caa58ab33bf98cd3b9de36c3e80b780ed5849a927bfd5"
     },
     {
       "path": "code/astrohacker/ts/ui/src/components/space-rain/black-hole.ts",
@@ -169,7 +169,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/embedded-version.ts",
-      "sha256": "4132ed23ed2181f9bb61fce1ccae7646d163ac5c5ee5feb50ecec2e6fac71d39"
+      "sha256": "3d5a5363dec521504d8bf46a685df9e07a383776ec54f5456b20adc929e4b9a1"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/geometry.test.ts",
@@ -425,7 +425,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/package.json",
-      "sha256": "c3af404d5ecbea372d2690435b6487038b4f89bf6a1db2d1754c25b078c1e994"
+      "sha256": "55ccd2fc62df4473a91a51b25bb6bae834f3cddd7db95758d9d5000f5c558001"
     },
     {
       "path": "code/quikopen/ts/quik/prettier.config.mjs",

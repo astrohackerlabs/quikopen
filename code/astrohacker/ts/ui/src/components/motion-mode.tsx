@@ -1,5 +1,5 @@
 import { useEffect, useMemo, type ReactElement, type ReactNode } from "react";
-import { Monitor, Pause, Play } from "lucide-react";
+import { ImageOff, Monitor, Pause, Play } from "lucide-react";
 import { cn } from "../utils";
 import { ToggleGroup, ToggleGroupItem } from "./toggle-group";
 import {
@@ -28,6 +28,7 @@ export function MotionModeProvider({
 const options = [
   { value: "motion", label: "Motion", Icon: Play },
   { value: "no-motion", label: "No motion", Icon: Pause },
+  { value: "no-graphics", label: "No graphics", Icon: ImageOff },
   { value: "system", label: "System", Icon: Monitor },
 ] as const;
 

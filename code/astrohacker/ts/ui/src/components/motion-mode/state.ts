@@ -1,14 +1,17 @@
-export type MotionMode = "motion" | "no-motion" | "system";
+export type MotionMode = "motion" | "no-motion" | "no-graphics" | "system";
 
 export function parseMotionMode(value: unknown): MotionMode {
-  return value === "motion" || value === "no-motion" ? value : "system";
+  return value === "motion" || value === "no-motion" || value === "no-graphics"
+    ? value
+    : "system";
 }
 
 export function resolveReducedMotion(
   mode: MotionMode,
   systemReducedMotion: boolean,
 ): boolean {
-  return mode === "system" ? systemReducedMotion : mode === "no-motion";
+  if (mode === "system") return systemReducedMotion;
+  return mode !== "motion";
 }
 
 export interface MotionModeSource {
