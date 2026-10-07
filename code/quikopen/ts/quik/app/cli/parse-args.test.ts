@@ -32,16 +32,54 @@ describe("parseClientArgs", () => {
       parseClientArgs(["bun", entry, SVG, "--profile", "lab"], entry),
     ).toEqual({
       ok: true,
-      options: { file: SVG, browser: "", profile: "lab" },
+      options: { files: [SVG], browser: "", profile: "lab" },
     });
     for (const args of [
       ["bun", entry, "--bad"],
       ["bun", entry, "--browser"],
-      ["quik", "unrelated.ts", "two"],
     ]) {
       expect(parseClientArgs(args, entry).ok).toBe(false);
     }
     expect(parseClientArgs(["bun", entry, SVG], entry).ok).toBe(true);
+    expect(parseClientArgs(["quik", "unrelated.ts", "two"], entry)).toEqual({
+      ok: true,
+      options: {
+        files: ["unrelated.ts", "two"],
+        browser: "",
+        profile: "default",
+      },
+    });
+  });
+
+  test("collects one to nine paths in order around flags", () => {
+    const nine = Array.from({ length: 9 }, (_, i) => `/tmp/${String(i)}.png`);
+    const r = parseClientArgs([
+      "quik",
+      "a.svg",
+      "--browser",
+      "webkit",
+      "b.png",
+      "-p=lab",
+      "a.svg",
+    ]);
+    expect(r).toEqual({
+      ok: true,
+      options: {
+        files: ["a.svg", "b.png", "a.svg"],
+        browser: "webkit",
+        profile: "lab",
+      },
+    });
+    const max = parseClientArgs(["quik", ...nine]);
+    expect(max.ok && max.options.files).toEqual(nine);
+  });
+
+  test("rejects more than nine paths", () => {
+    const ten = Array.from({ length: 10 }, (_, i) => `/tmp/${String(i)}.png`);
+    expect(parseClientArgs(["quik", ...ten])).toEqual({
+      ok: false,
+      error: "too many images (max 9)",
+    });
   });
 
   test("requires a positional image path", () => {
@@ -55,7 +93,7 @@ describe("parseClientArgs", () => {
     const r = parseClientArgs([COMPILED_ARGV0, BUNFS_ENTRY, SVG]);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.options.file).toBe(SVG);
+    expect(r.options.files).toEqual([SVG]);
     expect(r.options.browser).toBe("");
     expect(r.options.profile).toBe("default");
   });
@@ -72,7 +110,7 @@ describe("parseClientArgs", () => {
     ]);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.options.file).toBe(SVG);
+    expect(r.options.files).toEqual([SVG]);
     expect(r.options.browser).toBe("webkit");
     expect(r.options.profile).toBe("work");
   });
@@ -119,11 +157,9 @@ describe("parseClientArgs", () => {
     expect(r.error).toContain("unknown option");
   });
 
-  test("rejects a second positional after the image path", () => {
-    const r = parseClientArgs([COMPILED_ARGV0, BUNFS_ENTRY, SVG, "extra-arg"]);
-    expect(r.ok).toBe(false);
-    if (r.ok) return;
-    expect(r.error).toBe("unexpected argument: extra-arg");
+  test("reads a second positional as another image path", () => {
+    const r = parseClientArgs([COMPILED_ARGV0, BUNFS_ENTRY, SVG, "extra.png"]);
+    expect(r.ok && r.options.files).toEqual([SVG, "extra.png"]);
   });
 
   test("parses --browser and --profile with a path", () => {
@@ -137,7 +173,7 @@ describe("parseClientArgs", () => {
     ]);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.options.file).toBe(SVG);
+    expect(r.options.files).toEqual([SVG]);
     expect(r.options.browser).toBe("webkit");
     expect(r.options.profile).toBe("work");
   });

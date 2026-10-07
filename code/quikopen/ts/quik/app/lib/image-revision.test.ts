@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 
 import {
   applyRevision,
-  imageUrlWithRevision,
-  pollRevision,
+  imageUrl,
+  pollRevisions,
   revisionFromRequest,
   REVISION_POLL_MS,
 } from "./image-revision.ts";
@@ -44,9 +44,12 @@ test("applyRevision adopts startup and ignores older snapshots", () => {
   });
 });
 
-test("image URL keeps token and name and adds v", () => {
-  expect(imageUrlWithRevision("?token=abc&name=Drawing.svg", 7)).toBe(
-    "/image?token=abc&name=Drawing.svg&v=7",
+test("image URL keeps only the token and adds the index and revision", () => {
+  expect(imageUrl("?token=abc&name=Drawing.svg", 0)).toBe(
+    "/image?token=abc&i=0",
+  );
+  expect(imageUrl("?token=abc&name=Drawing.svg", 4, 7)).toBe(
+    "/image?token=abc&i=4&v=7",
   );
 });
 
@@ -56,7 +59,7 @@ function requestUrl(input: RequestInfo | URL): string {
   return input.url;
 }
 
-test("pollRevision reports changed, unchanged, and failed fetches", async () => {
+test("pollRevisions parses every image, nav, and failures", async () => {
   const calls: string[] = [];
   const fetchImpl = (input: RequestInfo | URL): Promise<Response> => {
     const url = requestUrl(input);
@@ -65,53 +68,44 @@ test("pollRevision reports changed, unchanged, and failed fetches", async () => 
     if (url.includes("bad")) {
       return Promise.resolve(new Response("no", { status: 404 }));
     }
-    const revision = url.includes("newer") ? 2 : 1;
+    if (url.includes("legacy")) {
+      return Promise.resolve(
+        Response.json({ ok: true, revision: 1, available: true }),
+      );
+    }
+    if (url.includes("broken")) {
+      return Promise.resolve(
+        Response.json({ ok: true, revisions: [{ revision: "x" }], nav: 0 }),
+      );
+    }
     return Promise.resolve(
-      Response.json({ ok: true, revision, available: true }),
+      Response.json({
+        ok: true,
+        revisions: [
+          { revision: 1, available: true },
+          { revision: 4, available: false, status: "missing" },
+        ],
+        nav: 3,
+      }),
     );
   };
 
-  expect(await pollRevision("tok", "", fetchImpl)).toEqual({
+  expect(await pollRevisions("tok", fetchImpl)).toEqual({
     ok: true,
-    revision: 1,
-    available: true,
-    changed: false,
+    revisions: [
+      { revision: 1, available: true },
+      { revision: 4, available: false, status: "missing" },
+    ],
+    nav: 3,
   });
   expect(calls[0]).toContain("token=tok");
-  expect(
-    await pollRevision("tok", "1", () =>
-      Promise.resolve(
-        Response.json({
-          ok: true,
-          revision: 4,
-          available: false,
-          status: "missing",
-        }),
-      ),
-    ),
-  ).toEqual({
-    ok: true,
-    revision: 4,
-    available: false,
-    status: "missing",
-    changed: true,
-  });
-  expect(await pollRevision("tok", "9", fetchImpl)).toMatchObject({
-    changed: false,
-    revision: 1,
-  });
-  expect(await pollRevision("missing", "", fetchImpl)).toEqual({
-    ok: false,
-    changed: false,
-  });
-  expect(await pollRevision("bad", "", fetchImpl)).toEqual({
-    ok: false,
-    changed: false,
-  });
+  for (const token of ["missing", "bad", "legacy", "broken"]) {
+    expect(await pollRevisions(token, fetchImpl)).toEqual({ ok: false });
+  }
 });
 
-test("clientAction reads the form and uses fetch", async () => {
-  const body = new URLSearchParams({ token: "session", seen: "1" });
+test("clientAction reads the form token and uses fetch", async () => {
+  const body = new URLSearchParams({ token: "session" });
   const request = new Request("http://127.0.0.1/?index", {
     method: "POST",
     body,
@@ -119,13 +113,15 @@ test("clientAction reads the form and uses fetch", async () => {
   const fetchImpl = (input: RequestInfo | URL): Promise<Response> => {
     expect(requestUrl(input)).toContain("token=session");
     return Promise.resolve(
-      Response.json({ ok: true, revision: 3, available: true }),
+      Response.json({
+        ok: true,
+        revisions: [{ revision: 3, available: true }],
+      }),
     );
   };
   expect(await revisionFromRequest(request, fetchImpl)).toEqual({
     ok: true,
-    revision: 3,
-    available: true,
-    changed: true,
+    revisions: [{ revision: 3, available: true }],
+    nav: 0,
   });
 });

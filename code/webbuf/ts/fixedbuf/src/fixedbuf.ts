@@ -47,6 +47,11 @@ export class FixedBuf<N extends number> {
     return FixedBuf.fromBuf(size, buf);
   }
 
+  /** Decode strict lowercase hex before requiring exactly size bytes. */
+  static fromStrictHex<N extends number>(size: N, hex: string): FixedBuf<N> {
+    return FixedBuf.fromBuf(size, WebBuf.fromStrictHex(hex));
+  }
+
   toHex(): string {
     return this._buf.toString("hex");
   }

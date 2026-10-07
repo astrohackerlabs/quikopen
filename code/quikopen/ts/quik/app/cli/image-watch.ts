@@ -1,5 +1,5 @@
 /**
- * Filesystem watch for the one image this process serves.
+ * Filesystem watch for one image this process serves (one watch per image).
  * Events update an in-memory revision. Polls read that revision.
  */
 import * as fs from "node:fs";
@@ -15,7 +15,11 @@ import {
 export const IMAGE_WATCH_QUIET_MS = 50;
 
 export type WatchStatus =
-  "missing" | "not-a-file" | "unreadable" | "too-large" | "unsupported";
+  | "missing"
+  | "not-a-file"
+  | "unreadable"
+  | "too-large"
+  | "unsupported";
 
 export interface WatchSnapshot {
   revision: number;
@@ -155,7 +159,8 @@ export function snapshotOf(publication: Publication): WatchSnapshot {
 export function revisionResponse(
   expectedToken: string,
   got: string | null,
-  snapshot: WatchSnapshot,
+  snapshots: WatchSnapshot[],
+  nav = 0,
 ): Response {
   if (!got || !timingSafeEqualStr(got, expectedToken)) {
     return Response.json(
@@ -163,18 +168,18 @@ export function revisionResponse(
       { status: 404 },
     );
   }
-  if (snapshot.available) {
-    return Response.json({
-      ok: true,
-      revision: snapshot.revision,
-      available: true,
-    });
-  }
   return Response.json({
     ok: true,
-    revision: snapshot.revision,
-    available: false,
-    status: snapshot.status,
+    revisions: snapshots.map((snapshot) =>
+      snapshot.available
+        ? { revision: snapshot.revision, available: true }
+        : {
+            revision: snapshot.revision,
+            available: false,
+            status: snapshot.status,
+          },
+    ),
+    nav,
   });
 }
 

@@ -55,14 +55,15 @@ export function helpOutput(version: string): string {
     "\n\n" +
     `Version: ${formatVersionLine(version)}\n` +
     "Usage:\n" +
-    "  quikopen <image-path>            Open an image in the current TermSurf pane\n" +
+    "  quikopen <image> [image …]     Open one to nine images in the current TermSurf pane\n" +
     "  quikopen --browser <engine>    Browser engine (chromium, webkit, …)\n" +
     "  quikopen --profile <name>      Browser profile name (default: default)\n" +
     "  quikopen -b <engine>           Short for --browser\n" +
     "  quikopen -p <name>             Short for --profile\n" +
     "  quikopen --version             Print version\n" +
     "  quikopen --help                Print this help\n" +
-    "\nFormats: .svg, .jpg, .jpeg, .png, .gif, .webp (case insensitive; max 8 MiB).\n"
+    "\nFormats: .svg, .jpg, .jpeg, .png, .gif, .webp (case insensitive; max 8 MiB each).\n" +
+    "Several images open in a grid (up to 3×3); a toolbar button switches to one at a time.\n"
   );
 }
 

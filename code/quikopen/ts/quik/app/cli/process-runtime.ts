@@ -1,5 +1,6 @@
 /**
- * One-process quik runtime: this process owns HTTP + TermSurf overlay.
+ * One-process quik runtime: this process owns HTTP + TermSurf overlay and
+ * serves one to nine images by index.
  * No UDS, no shared daemon, no --server role.
  */
 import type { Readable } from "node:stream";
@@ -36,6 +37,8 @@ export interface ProcessHandles {
   termsurf: TermSurfClient | null;
   close: () => void;
   requestExit: (reason: string) => void;
+  /** Terminal Left/Right arrows: moves the Single-mode selection. */
+  navigate: (step: number) => void;
 }
 
 export interface WaitForExitOptions {
@@ -46,6 +49,13 @@ export interface WaitForExitOptions {
 function tokenFromUrl(url: URL): string | null {
   const query = url.searchParams.get("token");
   return query && query.length > 0 ? query : null;
+}
+
+/** `i` query index; absent means the first image. Malformed is out of range. */
+function imageIndex(url: URL): number {
+  const raw = url.searchParams.get("i");
+  if (raw === null) return 0;
+  return /^\d+$/.test(raw) ? Number(raw) : -1;
 }
 
 async function tokenFromBody(request: Request): Promise<string | null> {
@@ -62,8 +72,10 @@ async function tokenFromBody(request: Request): Promise<string | null> {
 export async function startProcess(
   env: NodeJS.ProcessEnv = process.env,
   overlay: OverlayOptions = {},
-  image: ImageFile,
+  images: ImageFile[],
 ): Promise<ProcessHandles> {
+  const first = images[0];
+  if (!first) throw new Error("quikopen: no images");
   const skipTs = env.QUIK_SKIP_TERMSURF === "1";
   const tsEnv = readTermSurfEnv(env);
   if (!skipTs && "error" in tsEnv) {
@@ -72,7 +84,8 @@ export async function startProcess(
 
   const staticHttp = createStaticHttpHandler(env);
   const token = mintToken();
-  const watch = startImageWatch(image.path);
+  const watches = images.map((image) => startImageWatch(image.path));
+  let nav = 0;
   let queuedExit: string | null = null;
 
   const handles: ProcessHandles = {
@@ -86,6 +99,9 @@ export async function startProcess(
     requestExit: (reason: string): void => {
       queuedExit ??= reason;
     },
+    navigate: (step: number): void => {
+      nav += step;
+    },
   };
 
   const http = bindRuntimePort((bindPort) =>
@@ -96,8 +112,9 @@ export async function startProcess(
         handleHttp(req, {
           staticHttp,
           token,
-          image,
-          watch,
+          images,
+          watches,
+          nav: () => nav,
           onExit: () => {
             handles.requestExit("ui-x");
           },
@@ -112,7 +129,7 @@ export async function startProcess(
   handles.port = port;
   handles.http = http;
 
-  const url = buildQuikUrl(port, token, image.name);
+  const url = buildQuikUrl(port, token, first.name);
 
   if (!skipTs && !("error" in tsEnv)) {
     const geometry = readTerminalGeometry(env);
@@ -135,7 +152,7 @@ export async function startProcess(
   handles.close = (): void => {
     if (closed) return;
     closed = true;
-    watch.close();
+    for (const watch of watches) watch.close();
     try {
       handles.termsurf?.close();
     } catch {
@@ -161,8 +178,9 @@ async function handleHttp(
   ctx: {
     staticHttp: StaticHttpHandler;
     token: string;
-    image: ImageFile;
-    watch: ImageWatch;
+    images: ImageFile[];
+    watches: ImageWatch[];
+    nav: () => number;
     onExit: () => void;
   },
 ): Promise<Response> {
@@ -176,7 +194,9 @@ async function handleHttp(
     if (!got || !timingSafeEqualStr(got, ctx.token)) {
       return new Response("missing identity", { status: 404 });
     }
-    const again = resolveImagePath(ctx.image.path);
+    const image = ctx.images[imageIndex(url)];
+    if (!image) return new Response("no such image", { status: 404 });
+    const again = resolveImagePath(image.path);
     if (!again.ok) {
       return new Response(again.error, { status: 404 });
     }
@@ -192,7 +212,12 @@ async function handleHttp(
   }
 
   if (url.pathname === "/__quik/revision" && request.method === "GET") {
-    return revisionResponse(ctx.token, tokenFromUrl(url), ctx.watch.snapshot());
+    return revisionResponse(
+      ctx.token,
+      tokenFromUrl(url),
+      ctx.watches.map((watch) => watch.snapshot()),
+      ctx.nav(),
+    );
   }
 
   if (url.pathname === "/__quik/meta" && request.method === "GET") {
@@ -203,7 +228,10 @@ async function handleHttp(
         { status: 404 },
       );
     }
-    return Response.json({ ok: true, name: ctx.image.name });
+    return Response.json({
+      ok: true,
+      images: ctx.images.map((image) => ({ name: image.name })),
+    });
   }
 
   if (url.pathname === "/__quik/exit" && request.method === "POST") {
@@ -295,6 +323,9 @@ export function waitForExit(
           },
           onCtrlC: () => {
             done("sigint");
+          },
+          onArrow: (step) => {
+            handles.navigate(step);
           },
         },
         { enableRawMode: enableRaw },

@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "version": "0.1.6",
-  "monorepo_commit": "dcdc38176081d1f084241b3a2fbf05cdeb928a41",
+  "version": "0.1.7",
+  "monorepo_commit": "671e32aec24be0aee5af483d88e46f1f09e5beeb",
   "files": [
     {
       "path": ".gitignore",
@@ -21,7 +21,7 @@
     },
     {
       "path": "bun.lock",
-      "sha256": "60a47afc702b5fa8f75314420c25b65865b6f3e3a4f67d0fb1f53cdd3590ddc5"
+      "sha256": "dfda8f44f31589364a472dbe11594596d9fbb78fb9f1d709097275195aeabb4c"
     },
     {
       "path": "code/.prettierignore",
@@ -32,12 +32,12 @@
       "sha256": "aaddf3d386c1d4df61d9865d9e70b16fe4f8cd0c2873b55a8f94265e6d342c10"
     },
     {
-      "path": "code/astrohacker/ts/ui/package.json",
-      "sha256": "d99bf371060df989419ca48749e9919ba223e8fdabf960bc2fc63d016f638a35"
+      "path": "code/astrohacker/ts/ui/oxfmt.config.mjs",
+      "sha256": "d6fb90e19ff113e8424410097d091c765ebfa6a3f01e36451e107f12af6f5683"
     },
     {
-      "path": "code/astrohacker/ts/ui/prettier.config.mjs",
-      "sha256": "4615ff0137fd6946505ce5e9db6565e1ef7cb967e4c9a58f309fa32d6d65487f"
+      "path": "code/astrohacker/ts/ui/package.json",
+      "sha256": "a939cf62a4e8bff89232c8a2050edc1e0f96cbd4debeb8c37b2628f6e6e7caad"
     },
     {
       "path": "code/astrohacker/ts/ui/src/components/button-group.tsx",
@@ -45,7 +45,7 @@
     },
     {
       "path": "code/astrohacker/ts/ui/src/components/button.tsx",
-      "sha256": "62a64037aa03f18450b1d86d2241162e9265f5b25e51f07468489f8cd0c6338f"
+      "sha256": "08287b61879c0c78a0aa923a4ddd87b15bc2f3ce54ffbe21a3b6b0b7c3768a5d"
     },
     {
       "path": "code/astrohacker/ts/ui/src/components/motion-mode.tsx",
@@ -62,6 +62,10 @@
     {
       "path": "code/astrohacker/ts/ui/src/components/motion-mode/state.ts",
       "sha256": "9e8f177b530235b4b3fbf1e925bda69092f189caaa78f98911f41def29a9d9c9"
+    },
+    {
+      "path": "code/astrohacker/ts/ui/src/components/select.tsx",
+      "sha256": "839f56180fb6a366f2eff13a6a896c15044ca3df2e8abfe52516c96ec69bb29b"
     },
     {
       "path": "code/astrohacker/ts/ui/src/components/space-rain.tsx",
@@ -133,11 +137,15 @@
     },
     {
       "path": "code/astrohacker/ts/ui/tsconfig.browser.json",
-      "sha256": "47bf348b2636d5452b6c24d548d6d51555f3b75ef35e6faa5ae2a85a66ee0c4c"
+      "sha256": "579b012753b6e0271e7193a17ca3d29313e8fd0324aafa95ffda91e5e6b8a6c0"
     },
     {
       "path": "code/astrohacker/ts/ui/tsconfig.json",
       "sha256": "2f69f13fee2ad7d4cd0f1a63cc4f73a75ca9fbf0e88bb231349237de66a9bc07"
+    },
+    {
+      "path": "code/oxfmt.config.mjs",
+      "sha256": "64ffc95e56b1fd35fdee6967f69d2e28074b84d422d7cb46ac7306898880baff"
     },
     {
       "path": "code/oxlint-strict-rules.ts",
@@ -145,11 +153,7 @@
     },
     {
       "path": "code/oxlint.config.ts",
-      "sha256": "4a8fb296df0623de3a2e3aab6ea9cb880600f440f677d0fc87e0692819864d15"
-    },
-    {
-      "path": "code/prettier.config.mjs",
-      "sha256": "85c3f603fcfcd799bb1924302480bd257613c34c7e7442a8a470b37bd0dd9bba"
+      "sha256": "91c2971ea023b67b032926a957c45e4630644e27ea5682fe1856c71c3eb765f3"
     },
     {
       "path": "code/quikopen/ts/quik/.gitignore",
@@ -161,7 +165,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/app.css",
-      "sha256": "0f6bb7901e15cf8c0bb3054c49ae0e40f5a68486ea2a1b68896d4a6ae8312c93"
+      "sha256": "759d0fd3bf10f2d69dc7ca268c1b727bb60e0be791c6a903c8ae0fd39a089d5a"
     },
     {
       "path": "code/quikopen/ts/quik/app/assets.d.ts",
@@ -169,7 +173,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/embedded-version.ts",
-      "sha256": "3d5a5363dec521504d8bf46a685df9e07a383776ec54f5456b20adc929e4b9a1"
+      "sha256": "21d24f907f8b52a0258f1bd158feb669cac4a044164cc5a10e5322bed971ad98"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/geometry.test.ts",
@@ -197,11 +201,11 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/image-watch.test.ts",
-      "sha256": "e6fee4ce440981427d5463e334caf868f9490fc85cb06cc087a08e82b3ffbff1"
+      "sha256": "ae4b6342141bd856bd2d1ec74efc08b8c30305882b84d2e9d28c612a370e9f1f"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/image-watch.ts",
-      "sha256": "a251b2c43bee1fbfbd7fe6b86a81a2103f98ad59dca447913e179be60680bc07"
+      "sha256": "60b6da1409e54d9b3cf514d2f5a74732ee06ac01bb7c9380ef85a5c159e117aa"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/leb128-wire.test.ts",
@@ -213,11 +217,11 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/parse-args.test.ts",
-      "sha256": "22a35aa98ee26c4a9c446bcda1d8c851c9e24a50d6c91f5276a1f9a8b300248b"
+      "sha256": "aa81d57f97989fb2e22be0aedaac8b13f60ffae5e1ddb0f8bfc1d1fa50f2b933"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/parse-args.ts",
-      "sha256": "cf707ae184d05446e80458e082a0435959f6e4c65b5cd81a92bf0e0115b9469a"
+      "sha256": "a8e9f53638bc12d20578b90fa52ebebfe9bd03184645e85a7bf4a283057b69cf"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/paths.test.ts",
@@ -229,15 +233,15 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/process-runtime.ts",
-      "sha256": "7d40f77b753763fbd0aa7dbfeed96058d5d30b40ab868438914366112f4caa76"
+      "sha256": "9a79919ae29ef9ce8189cd033f76c2049eddc7fcc9ecaca43781ab877e7076ad"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/product-identity.test.ts",
-      "sha256": "23af22ef575ee704f432d0ba8b4adf6fb09c6aaa378b024c2ebf0a3f4dfc5299"
+      "sha256": "608ed64ca20f74c3e1047d4ccafdd7af2e6be74ebd955a8c7dc3f69ccc0d280b"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/product-identity.ts",
-      "sha256": "7513d7dd51dd4924703fa1aa5660b803a370258996b39618ee8082fbe3681b52"
+      "sha256": "e3dfd1bca4a32014d8c61ed157c160cbc2466504cd45ac58225cd985a0e69d51"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/runtime-port.test.ts",
@@ -265,11 +269,11 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/tty-esc.test.ts",
-      "sha256": "74d8878a03771289a4bf02167203d2469ec149e04c36b57a7ff1abd8c03e4776"
+      "sha256": "fd21521b7108b5a77dd4cf537a231b1c6c8359a35bb5039749d8dcdaaeb36729"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/tty-esc.ts",
-      "sha256": "d2c0a5cf9838a47e49067817d035e3f03c839a2ba8c8ba698add69cdad1543b7"
+      "sha256": "f17e42fcc0db230864cf00df7d5de3075dfb2e485cf8d5948a1ccfae73dc9cad"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/utf8-helpers.test.ts",
@@ -288,12 +292,24 @@
       "sha256": "e90ff34457db1f892c9a766ee611338b366c041ef4dcbf4025854f9804dbde96"
     },
     {
+      "path": "code/quikopen/ts/quik/app/components/image-frame.tsx",
+      "sha256": "b1579ae00e66ce85be67238ba82142ed061e1445e3b8ae0eb66714715432e777"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/components/image-switcher.tsx",
+      "sha256": "a889a55938518e35d6a3a4707328f448fb445d6a4c81bea114f978cf2c323da3"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/components/view-toggle.tsx",
+      "sha256": "967805e7b88f044a964c91d9059c9cab93a08e26ab7872e1d17274bf4e60a0cd"
+    },
+    {
       "path": "code/quikopen/ts/quik/app/components/viewer-page.tsx",
-      "sha256": "922b0efc2f06813974d6f7912d22b55cfdcacb90362bd3ed3689c5db70b451dc"
+      "sha256": "6072db546293bd18049a331591189174a53f6581ddcb73996d20f8c783066629"
     },
     {
       "path": "code/quikopen/ts/quik/app/components/zoom-control.tsx",
-      "sha256": "c00af2409c985b16a42fffacd8fca1d224a689d1d1aee944ceb2213ce1794368"
+      "sha256": "bfa3a90697ca6b24566f8c0ec6efa6cd17fb29fbbc1571a4ae4d92d7456fcacd"
     },
     {
       "path": "code/quikopen/ts/quik/app/entry.client.tsx",
@@ -304,20 +320,28 @@
       "sha256": "7dc6c0d257ad8142010544a0543a4ed28b2db6d76df3bbbf62c163f5838423f7"
     },
     {
+      "path": "code/quikopen/ts/quik/app/lib/image-grid.test.ts",
+      "sha256": "8aa764919c6238e7823d1ba212785282dfa57c713a9cc7c8251df85972d8ac1a"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/lib/image-grid.ts",
+      "sha256": "8c1fd4859896cbb4ac10cd6fa12a917cb3fb45b31b3b80696eabb51ca676edf2"
+    },
+    {
       "path": "code/quikopen/ts/quik/app/lib/image-revision.test.ts",
-      "sha256": "2791a403c0c590093d93a8d704db5f8f3b6ec1c92ae25b9aad0ef9be78870d48"
+      "sha256": "deece37cece91bde4c50107c050c4c896d40a7d3039fdd28e3a2592570ae0b9e"
     },
     {
       "path": "code/quikopen/ts/quik/app/lib/image-revision.ts",
-      "sha256": "4d28444fcd158a90e319497b7ab4a444192157d1554b9ae57178274d1d8bae36"
+      "sha256": "6b85f8a37fd927dc345d1a4b2677c668627b79e5c6525266b1acea18a5dc99aa"
     },
     {
       "path": "code/quikopen/ts/quik/app/lib/image-zoom.test.ts",
-      "sha256": "08f56743e2e7ec84cdf8d5fb687abfecabf13b5d0c994ebee3144369dada65e5"
+      "sha256": "56e701ebf37745dda0cb35a30b3b5e53a99770c1a767d872c2ada027e0e3b5a9"
     },
     {
       "path": "code/quikopen/ts/quik/app/lib/image-zoom.ts",
-      "sha256": "d6b5b0a703c90e00eb8650a0ac87a3209404434f0f8841ed3c21e8903a18214d"
+      "sha256": "0a6bbf1c078721bdc6a36c83312e51db36ba54cc5918e9df5b2b6715ddfc974f"
     },
     {
       "path": "code/quikopen/ts/quik/app/lib/utils.ts",
@@ -337,11 +361,11 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/stack.contract.test.ts",
-      "sha256": "2cd7b2b87c3900e281b34758b128b04b1b222d1f24389fd07707d85d11c0b609"
+      "sha256": "3ca39c3161c0c54e167af77a41190f7362237dd4ea9697734d360e2f1483d833"
     },
     {
       "path": "code/quikopen/ts/quik/cli.ts",
-      "sha256": "f9782c81c847ecd6af46dc74c6dfeb2464106d1b51a350bc96d579c9822799ac"
+      "sha256": "02c517d51b19dd74876b7a129003fb0e29cd6870a6ec672b8f4d199090026696"
     },
     {
       "path": "code/quikopen/ts/quik/fixtures/a-very-long-quikopen-filename-that-needs-the-full-card-row.svg",
@@ -393,7 +417,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/fixtures/smoke.nu",
-      "sha256": "3c688fa8b57e7bae046edf7285a4b62200698435f23f53d7e2484e6e1944833e"
+      "sha256": "99751671b40f08f1ae48e07b2991b62deac98514baba67358ffaf4915701263e"
     },
     {
       "path": "code/quikopen/ts/quik/fixtures/tall.png",
@@ -424,12 +448,12 @@
       "sha256": "dd5e9f23abcd3561ac94924b2e7d14c2067661b02da24001b8ef5a5eaf35b223"
     },
     {
-      "path": "code/quikopen/ts/quik/package.json",
-      "sha256": "55ccd2fc62df4473a91a51b25bb6bae834f3cddd7db95758d9d5000f5c558001"
+      "path": "code/quikopen/ts/quik/oxfmt.config.mjs",
+      "sha256": "d6fb90e19ff113e8424410097d091c765ebfa6a3f01e36451e107f12af6f5683"
     },
     {
-      "path": "code/quikopen/ts/quik/prettier.config.mjs",
-      "sha256": "4615ff0137fd6946505ce5e9db6565e1ef7cb967e4c9a58f309fa32d6d65487f"
+      "path": "code/quikopen/ts/quik/package.json",
+      "sha256": "7639fc0c31793099a9b32018522e75feaad2762fa255cdb7a015234098dc2c4f"
     },
     {
       "path": "code/quikopen/ts/quik/public/images/astrohacker-7-dark-128.webp",
@@ -456,10 +480,6 @@
       "sha256": "c389b18e3992687411e2081c766d8e1b4a1d72680dd5854edcb9ace6c73c9be1"
     },
     {
-      "path": "code/quikopen/ts/quik/public/styles/quik.css",
-      "sha256": "fa43242580b4915d24c1c66a1e763ac2e8c14727331847d1375acb95ea5bde2c"
-    },
-    {
       "path": "code/quikopen/ts/quik/react-router.config.ts",
       "sha256": "2ed7ed5246f356c3363f6c65087aae9b0bc44f28b1ab4dbe378580d52cc6e400"
     },
@@ -469,7 +489,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/test/native-runtime.integration.test.ts",
-      "sha256": "de2059a1ace8d4a7b092342097fee07f02695a0939b2cb624c46d5272588dfea"
+      "sha256": "1b057387cd457871b36a3e6ae95ae2848c5d53cd3464aa17428de860233a5797"
     },
     {
       "path": "code/quikopen/ts/quik/test/runtime-fixture.ts",
@@ -517,11 +537,11 @@
     },
     {
       "path": "code/webbuf/ts/fixedbuf/package.json",
-      "sha256": "a075535db74361b04e82ea056f1f495355807c9f83613453aa62a4a7a26c3a40"
+      "sha256": "eb620cf848ccc21e5a0d552d750c41fc7fb3cf40f69622de8e1fbf28b240d219"
     },
     {
       "path": "code/webbuf/ts/fixedbuf/src/fixedbuf.ts",
-      "sha256": "12c730c996d58c0e7133e19161e530a50648942fbf0e69de9c884828741d2d3a"
+      "sha256": "74f2fd6626daed21f48aa9e1dfa61a0bb110682c41870a740c6b48826fa0540d"
     },
     {
       "path": "code/webbuf/ts/fixedbuf/src/index.ts",
@@ -550,6 +570,10 @@
     {
       "path": "code/webbuf/ts/fixedbuf/test/native-copy.test.ts",
       "sha256": "a58986c36d76b7d7853a5665c4a67e3fd0b9947c646b9addad46007370f795f1"
+    },
+    {
+      "path": "code/webbuf/ts/fixedbuf/test/strict-hex.test.ts",
+      "sha256": "b493245c91fa2383c6777ee4455b35695e893408d45d22f521c2e65a91a7afce"
     },
     {
       "path": "code/webbuf/ts/fixedbuf/test/zero.test.ts",
@@ -581,7 +605,7 @@
     },
     {
       "path": "code/webbuf/ts/numbers/package.json",
-      "sha256": "915bac248cf52fb77a3062c812af5b5e3c5966dd57dbc329ef7ea9f49d469bf5"
+      "sha256": "f2c031db225686eb1f792b2c66e2c96c738a4934fa54855d45ccd15e14949edd"
     },
     {
       "path": "code/webbuf/ts/numbers/src/index.ts",
@@ -657,7 +681,7 @@
     },
     {
       "path": "code/webbuf/ts/rw/package.json",
-      "sha256": "2d84744868efc112d4558bba669d78526d7cf7253c4b398740c7dd70b5e0be00"
+      "sha256": "63e4dd0072a04bf3752565619d96d09a135589c767dab47d8e7a7ee04e35e63b"
     },
     {
       "path": "code/webbuf/ts/rw/src/buf-reader.ts",
@@ -757,7 +781,7 @@
     },
     {
       "path": "code/webbuf/ts/webbuf/package.json",
-      "sha256": "983bd06f2b8b70177f8ad7a423384aad72cd16ad1bba0acbac45f20e907b453e"
+      "sha256": "5648ee0487a5fab27577f65e47551f65738142e0adca44f1e91d5895ce8986de"
     },
     {
       "path": "code/webbuf/ts/webbuf/src/base64url.ts",
@@ -817,7 +841,7 @@
     },
     {
       "path": "code/webbuf/ts/webbuf/src/webbuf.ts",
-      "sha256": "73dce98978b4a696c6d4bf65a70cff0ca0c7c4124dbb4185575ae1d9eb316c62"
+      "sha256": "d299ec4c796e1315de660acfebe7686e7a108531aeac04038b125d4cc60a3e3f"
     },
     {
       "path": "code/webbuf/ts/webbuf/test/audit.test.ts",
@@ -838,6 +862,10 @@
     {
       "path": "code/webbuf/ts/webbuf/test/native-view.test.ts",
       "sha256": "66ff35293038176f4e163091d02f34d8cad27d8200313cdedc8cc9f9659342c3"
+    },
+    {
+      "path": "code/webbuf/ts/webbuf/test/strict-hex.test.ts",
+      "sha256": "dd3bb0c698e4e3084d1cb4675bcce24a48b6953485b2bc395401873553c667bb"
     },
     {
       "path": "code/webbuf/ts/webbuf/test/unsigned-arrays.test.ts",
@@ -869,7 +897,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "4a5369aa52fa37c2722939ea29136b104be6a5b22bd993de49a3731053cad033"
+      "sha256": "35b38270e4edcf2cca8837bcb77b9412ce73e4763b01ccd78e601427f7caff89"
     }
   ]
 }

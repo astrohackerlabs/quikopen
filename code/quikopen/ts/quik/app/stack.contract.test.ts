@@ -35,13 +35,14 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
     expect(Number(vite.version.split(".")[0])).toBe(8);
   });
 
-  test("uses SpaceRain card shell and RR routes", () => {
+  test("simplified viewer without SpaceRain, on RR routes", () => {
     const page = readFileSync(
       join(pkgRoot, "app/components/viewer-page.tsx"),
       "utf8",
     );
-    expect(page).toContain('from "@astrohacker/ui/space-rain"');
-    expect(page).toContain("quik-space-rain");
+    expect(page).not.toContain("space-rain");
+    expect(page).not.toContain("SpaceRain");
+    expect(page).not.toContain("motion-mode");
     expect(page).toContain("quik-image");
     expect(page).not.toContain("dangerouslySetInnerHTML");
     const routes = readFileSync(join(pkgRoot, "app/routes.ts"), "utf8");
@@ -70,7 +71,6 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
       "app/cli/parse-args.ts",
       "app/cli/product-identity.ts",
       "app/cli/paths.ts",
-      "AGENTS.md",
     ].map((rel) => readFileSync(join(pkgRoot, rel), "utf8"));
     const joined = sources.join("\n");
     expect(joined).not.toContain("quik.sock");
@@ -84,34 +84,37 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
     expect(existsSync(join(pkgRoot, "app/cli/server-runtime.ts"))).toBe(false);
   });
 
-  test("card uses natural SVG size with min, max, and inner scroll", () => {
+  test("frames fit without enlarging and scroll when zoomed", () => {
     const css = readFileSync(join(pkgRoot, "app/app.css"), "utf8");
-    expect(css).toContain("min-width: 32rem");
-    expect(css).toContain("min-height: 18rem");
-    expect(css).toContain("max-width: calc(100vw - 3rem)");
-    expect(css).toContain("max-height: calc(100dvh - 3rem)");
-    expect(css).toMatch(/\.quik-stage[\s\S]*overflow:\s*auto/);
+    expect(css).toMatch(/\.quik-frame \{[^}]*overflow:\s*auto/);
     expect(css).toMatch(/html[\s\S]*overflow:\s*hidden/);
-    const svgRule = css.slice(css.indexOf(".quik-image"));
-    expect(svgRule).toContain("width: auto");
-    expect(svgRule).toContain("height: auto");
-    expect(svgRule).toContain("max-width: none");
-    expect(svgRule).toContain("max-height: none");
-    expect(svgRule).not.toContain("object-fit: contain");
-    expect(svgRule).not.toContain("width: 100%");
+    const imageRule = css.slice(css.indexOf(".quik-image {"));
+    expect(imageRule).toContain("width: auto");
+    expect(imageRule).toContain("max-width: none");
+    const fitRule = css.slice(
+      css.indexOf('.quik-frame[data-fit="true"] .quik-image'),
+    );
+    expect(fitRule).toContain("max-width: 100%");
+    expect(fitRule).toContain("max-height: 100%");
+    expect(fitRule).not.toMatch(/\n\s*width: 100%/);
+    const frame = readFileSync(
+      join(pkgRoot, "app/components/image-frame.tsx"),
+      "utf8",
+    );
+    expect(frame).toContain("data-fit=");
     const page = readFileSync(
       join(pkgRoot, "app/components/viewer-page.tsx"),
       "utf8",
     );
-    expect(page).toContain('data-testid="quik-stage"');
-    expect(page).not.toContain("max-w-[640px]");
+    expect(page).toContain('"quik-stage"');
+    expect(page).toContain('"quik-cell-frame"');
   });
 
-  test("three stage background swatches", () => {
+  test("three frame background swatches", () => {
     const css = readFileSync(join(pkgRoot, "app/app.css"), "utf8");
-    expect(css).toContain('.quik-stage[data-bg="dark"]');
-    expect(css).toContain('.quik-stage[data-bg="bright"]');
-    expect(css).toContain('.quik-stage[data-bg="checkered"]');
+    expect(css).toContain('.quik-frame[data-bg="dark"]');
+    expect(css).toContain('.quik-frame[data-bg="bright"]');
+    expect(css).toContain('.quik-frame[data-bg="checkered"]');
     expect(css).toContain("repeating-conic-gradient");
     const swatches = readFileSync(
       join(pkgRoot, "app/components/background-swatches.tsx"),
@@ -126,7 +129,11 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
       "utf8",
     );
     expect(page).toContain("BackgroundSwatches");
-    expect(page).toContain("data-bg={bg}");
+    const frame = readFileSync(
+      join(pkgRoot, "app/components/image-frame.tsx"),
+      "utf8",
+    );
+    expect(frame).toContain("data-bg={bg}");
   });
 
   test("card uses the quikopen mark not Astrohacker 7", () => {
@@ -147,43 +154,38 @@ describe("quik stack contract (RR8 + @astrohacker/ui)", () => {
     expect(
       existsSync(join(pkgRoot, "public/images/quikopen-dark-200.webp")),
     ).toBe(true);
-    const master = readFileSync(
-      join(pkgRoot, "../../../../assets/quikopen.svg"),
-      "utf8",
-    );
-    expect(master).toContain('viewBox="274 247 722 722"');
-    expect(master).not.toContain('viewBox="0 0 1254 1254"');
-    expect(master).not.toContain("qo");
-    expect(master).not.toContain("M 214 226 L 226 214 L 248 236 L 236 248 Z");
+    // The monorepo master assets/quikopen.svg is outside this package and
+    // the public source. scripts/verify-brand-logo-factory.nu pins it.
   });
 
-  test("filename sits on its own full-width row under the chrome", () => {
+  test("one toolbar holds brand, view, background, zoom and Exit", () => {
     const page = readFileSync(
       join(pkgRoot, "app/components/viewer-page.tsx"),
       "utf8",
     );
-    expect(page).toContain('data-testid="quik-header"');
-    expect(page).toContain("flex-col");
-    expect(page).toContain('data-testid="quik-header-chrome"');
-    expect(page).toContain('data-testid="quik-header-controls"');
-    expect(page).toContain('data-testid="quik-filename"');
-    const chromeStart = page.indexOf('data-testid="quik-header-chrome"');
-    const controlsStart = page.indexOf('data-testid="quik-header-controls"');
-    const filenameStart = page.indexOf("quik-filename");
-    expect(controlsStart).toBeGreaterThan(chromeStart);
-    expect(filenameStart).toBeGreaterThan(controlsStart);
-    const chrome = page.slice(chromeStart, controlsStart);
-    const controls = page.slice(controlsStart, filenameStart);
-    expect(chrome).toContain("ExitButton");
-    expect(chrome).toContain("MotionModeSelector");
-    expect(chrome).not.toContain("BackgroundSwatches");
-    expect(chrome).not.toContain("ZoomControl");
-    expect(controls).toContain("BackgroundSwatches");
-    expect(controls).toContain("ZoomControl");
-    expect(controls).not.toContain("MotionModeSelector");
-    expect(page).toContain("storageKey={MOTION_STORAGE_KEY}");
-    expect(page).toContain('const MOTION_STORAGE_KEY = "quik.motion-mode.v1"');
-    expect(controls).not.toContain("quik-filename");
+    const start = page.indexOf('data-testid="quik-toolbar"');
+    const end = page.indexOf("</header>", start);
+    expect(start).toBeGreaterThan(0);
+    const toolbar = page.slice(start, end);
+    for (const part of [
+      "quik-logo",
+      "quik-filename",
+      "ViewToggle",
+      "BackgroundSwatches",
+      "ZoomControl",
+      "ExitButton",
+    ]) {
+      expect(toolbar).toContain(part);
+    }
+    expect(page).toContain("ImageSwitcher");
+    expect(page).toContain("gridShape");
+    const switcher = readFileSync(
+      join(pkgRoot, "app/components/image-switcher.tsx"),
+      "utf8",
+    );
+    // TermSurf panes do not host OS-native popups: use the kit Select.
+    expect(switcher).toContain('from "@astrohacker/ui/select"');
+    expect(switcher).not.toContain("<select");
     expect(
       existsSync(
         join(

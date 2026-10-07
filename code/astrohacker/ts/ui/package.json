@@ -5,9 +5,9 @@
   "dependencies": {
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.45.0",
-    "radix-ui": "^1.6.7",
-    "tailwind-merge": "^3.3.1"
+    "lucide-react": "^1.52.0",
+    "radix-ui": "^1.7.0",
+    "tailwind-merge": "^3.7.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -15,20 +15,19 @@
     "tailwindcss": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
-    "@types/node": "^26.3.0",
-    "@types/bun": "^1.4.0",
-    "vite": "^8.2.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/node": "^26.6.4",
+    "@types/bun": "^1.4.2",
+    "vite": "^8.3.3",
     "typescript": "7.0.2",
-    "prettier": "3.9.6",
-    "oxlint": "1.80.0",
-    "oxlint-tsgolint": "7.0.2001",
-    "prettier-plugin-tailwindcss": "0.8.1"
+    "oxfmt": "0.72.0",
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2003"
   },
   "scripts": {
-    "format": "prettier --ignore-path ../../../.prettierignore --ignore-path .prettierignore --write .",
-    "format:check": "prettier --ignore-path ../../../.prettierignore --ignore-path .prettierignore --check .",
+    "format": "oxfmt --threads 1 --config oxfmt.config.mjs --ignore-path ../../../.prettierignore --write .",
+    "format:check": "oxfmt --threads 1 --config oxfmt.config.mjs --ignore-path ../../../.prettierignore --check .",
     "lint": "oxlint --config ../../../oxlint.config.ts --deny-warnings .",
     "lint:fix": "oxlint --config ../../../oxlint.config.ts --deny-warnings --fix .",
     "typecheck": "tsc --noEmit"
@@ -40,6 +39,7 @@
     "./package.json": "./package.json",
     "./button": "./src/components/button.tsx",
     "./button-group": "./src/components/button-group.tsx",
+    "./select": "./src/components/select.tsx",
     "./toggle-group": "./src/components/toggle-group.tsx",
     "./space-rain": "./src/components/space-rain.tsx",
     "./motion-mode": "./src/components/motion-mode/index.ts"

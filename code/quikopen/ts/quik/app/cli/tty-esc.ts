@@ -1,5 +1,5 @@
 /**
- * Detect Esc (0x1b) and Ctrl+C (0x03) on a readable stream (stdin / PTY).
+ * Detect Esc (0x1b), Ctrl+C (0x03) and Left/Right arrows on stdin / PTY.
  *
  * Ghostty does not forward Esc into the TermSurf webview; it encodes Esc to
  * the surface PTY where the quik client is the foreground process.
@@ -18,15 +18,72 @@ export const CTRL_C_BYTE = 0x03;
 
 export type StdinControlByte = "esc" | "ctrl-c" | null;
 
-/** Classify first matching control byte in buffer (Esc preferred if both). */
-export function classifyControlByte(buf: WebBuf): StdinControlByte {
-  let sawCtrlC = false;
-  for (let i = 0; i < buf.length; i++) {
-    const b = buf.bytes[i];
-    if (b === ESC_BYTE) return "esc";
-    if (b === CTRL_C_BYTE) sawCtrlC = true;
+/** Left (−1) or Right (+1) arrow from a CSI/SS3 key sequence. */
+export type ArrowStep = -1 | 1;
+
+export type StdinEvent = "esc" | "ctrl-c" | ArrowStep;
+
+export interface StdinScan {
+  events: StdinEvent[];
+  /** A bare Esc ended the chunk; it may begin a split key sequence. */
+  pendingEsc: boolean;
+}
+
+/** Hold for a lone trailing Esc before treating it as exit. */
+export const ESC_HOLD_MS = 30;
+
+const CSI_INTRO = 0x5b; // '['
+const SS3_INTRO = 0x4f; // 'O'
+
+/**
+ * Scan stdin bytes. A bare Esc exits; an Esc that starts a CSI (`ESC [`) or
+ * SS3 (`ESC O`) key sequence is a key, so arrow keys never close the viewer.
+ * Pass `pendingEsc` from the previous chunk to join a split sequence.
+ */
+export function scanStdin(buf: WebBuf, pendingEsc = false): StdinScan {
+  const bytes = pendingEsc ? [ESC_BYTE, ...buf.bytes] : Array.from(buf.bytes);
+  const events: StdinEvent[] = [];
+  let i = 0;
+  while (i < bytes.length) {
+    const b = bytes[i];
+    if (b === CTRL_C_BYTE) {
+      events.push("ctrl-c");
+      i++;
+      continue;
+    }
+    if (b !== ESC_BYTE) {
+      i++;
+      continue;
+    }
+    if (i === bytes.length - 1) return { events, pendingEsc: true };
+    const intro = bytes[i + 1];
+    if (intro !== CSI_INTRO && intro !== SS3_INTRO) {
+      events.push("esc");
+      i++;
+      continue;
+    }
+    // Parameter (0x30–0x3f) and intermediate (0x20–0x2f) bytes, then final.
+    let j = i + 2;
+    while (j < bytes.length) {
+      const p = bytes[j] ?? 0;
+      if (p < 0x20 || p > 0x3f) break;
+      j++;
+    }
+    const final = bytes[j];
+    if (final === 0x43) events.push(1); // 'C' Right
+    if (final === 0x44) events.push(-1); // 'D' Left
+    i = j + 1;
   }
-  return sawCtrlC ? "ctrl-c" : null;
+  return { events, pendingEsc: false };
+}
+/**
+ * Classify a complete chunk (Esc preferred if both). A trailing bare Esc
+ * counts as Esc; key sequences such as arrows do not.
+ */
+export function classifyControlByte(buf: WebBuf): StdinControlByte {
+  const scan = scanStdin(buf);
+  if (scan.pendingEsc || scan.events.includes("esc")) return "esc";
+  return scan.events.includes("ctrl-c") ? "ctrl-c" : null;
 }
 
 /** True if buffer contains a bare ESC byte. */
@@ -64,6 +121,8 @@ export interface WatchEscHandlers {
   onEsc: () => void;
   /** Required when enableRawMode may turn off ISIG (maps 0x03 → interrupt). */
   onCtrlC?: () => void;
+  /** Left (−1) or Right (+1) arrow key sequences; these never exit. */
+  onArrow?: (step: ArrowStep) => void;
 }
 
 export interface WatchEscOptions {
@@ -81,7 +140,7 @@ type MaybeTty = Readable & {
 };
 
 /**
- * Watch `input` for Esc and (optionally) raw Ctrl+C.
+ * Watch `input` for Esc, (optionally) raw Ctrl+C, and arrow keys.
  * Invokes at most one of the handlers once (caller debounces multi-source exit).
  */
 export function watchEscInput(
@@ -92,11 +151,13 @@ export function watchEscInput(
   // Back-compat: single callback = onEsc only
   let onEsc: () => void;
   let onCtrlC: (() => void) | undefined;
+  let onArrow: ((step: ArrowStep) => void) | undefined;
   if (typeof handlers === "function") {
     onEsc = handlers;
   } else {
     onEsc = handlers.onEsc;
     onCtrlC = handlers.onCtrlC;
+    onArrow = handlers.onArrow;
   }
 
   let stopped = false;
@@ -123,21 +184,39 @@ export function watchEscInput(
     /* */
   }
 
+  let pendingEsc = false;
+  let holdTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const fire = (event: "esc" | "ctrl-c"): void => {
+    if (stopped || fired) return;
+    fired = true;
+    if (holdTimer) clearTimeout(holdTimer);
+    holdTimer = null;
+    if (event === "esc") onEsc();
+    else if (onCtrlC) onCtrlC();
+    else onEsc(); // last resort: still exit rather than ignore interrupt
+  };
+
   // Node types chunk as Buffer | string — convert to WebBuf on the next line.
   const onData = (chunk: Buffer | string): void => {
     if (stopped || fired) return;
-    const buf = chunkToWebBuf(chunk);
-    const kind = classifyControlByte(buf);
-    if (kind === "esc") {
-      fired = true;
-      onEsc();
-      return;
+    if (holdTimer) clearTimeout(holdTimer);
+    holdTimer = null;
+    const scan = scanStdin(chunkToWebBuf(chunk), pendingEsc);
+    pendingEsc = scan.pendingEsc;
+    for (const event of scan.events) {
+      if (event === "esc" || event === "ctrl-c") {
+        fire(event);
+        return;
+      }
+      onArrow?.(event);
     }
-    if (kind === "ctrl-c") {
-      fired = true;
-      if (onCtrlC) onCtrlC();
-      else onEsc(); // last resort: still exit rather than ignore interrupt
-      return;
+    if (pendingEsc) {
+      // A lone trailing Esc may be the first byte of a split arrow sequence.
+      holdTimer = setTimeout(() => {
+        holdTimer = null;
+        fire("esc");
+      }, ESC_HOLD_MS);
     }
   };
 
@@ -153,6 +232,8 @@ export function watchEscInput(
     stop() {
       if (stopped) return;
       stopped = true;
+      if (holdTimer) clearTimeout(holdTimer);
+      holdTimer = null;
       try {
         input.off("data", onData);
         input.off("end", onEnd);

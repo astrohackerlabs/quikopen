@@ -1,84 +1,105 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import {
-  MotionModeProvider,
-  MotionModeSelector,
-  useMotionMode,
-} from "@astrohacker/ui/motion-mode";
-import { SpaceRain } from "@astrohacker/ui/space-rain";
-import { shellPanel } from "@astrohacker/ui/surfaces";
-import { cn } from "~/lib/utils";
 import { ExitButton } from "~/components/exit-button";
 import {
   BackgroundSwatches,
   type StageBg,
 } from "~/components/background-swatches";
+import { ImageFrame, type NaturalSize } from "~/components/image-frame";
+import { ImageSwitcher } from "~/components/image-switcher";
+import { ViewToggle, type ViewMode } from "~/components/view-toggle";
 import { ZoomControl } from "~/components/zoom-control";
+import { gridShape } from "~/lib/image-grid";
 import {
   applyRevision,
-  imageUrlWithRevision,
+  imageUrl,
   REVISION_POLL_MS,
   type RevisionActionData,
 } from "~/lib/image-revision";
-import { ZOOM_DEFAULT, zoomSize } from "~/lib/image-zoom";
+import { ZOOM_DEFAULT, type Zoom } from "~/lib/image-zoom";
 
-const MOTION_STORAGE_KEY = "quik.motion-mode.v1";
-
-export function ViewerPage(): React.JSX.Element {
-  return (
-    <MotionModeProvider storageKey={MOTION_STORAGE_KEY}>
-      <QuikViewer />
-    </MotionModeProvider>
-  );
+interface ImageState {
+  name: string;
+  src: string;
+  /** The src that failed to decode or became unavailable. */
+  failedSrc: string | null;
+  natural: NaturalSize | null;
 }
 
-function QuikViewer(): React.JSX.Element {
-  const { mode, ready, setMode } = useMotionMode();
-  const [name, setName] = useState("");
-  const [imageSrc, setImageSrc] = useState("");
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+function wrap(index: number, count: number): number {
+  return ((index % count) + count) % count;
+}
+
+export function ViewerPage(): React.JSX.Element {
+  const [images, setImages] = useState<ImageState[] | null>(null);
+  const [view, setView] = useState<ViewMode>("grid");
+  const [current, setCurrent] = useState(0);
   const [bg, setBg] = useState<StageBg>("dark");
-  const [zoom, setZoom] = useState(ZOOM_DEFAULT);
-  const [natural, setNatural] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
+  const [zoom, setZoom] = useState<Zoom>(ZOOM_DEFAULT);
   const fetcher = useFetcher<RevisionActionData>();
   const fetcherRef = useRef(fetcher);
-  const appliedRef = useRef<number | null>(null);
-  const imageSrcRef = useRef("");
+  const appliedRef = useRef<(number | null)[]>([]);
+  const navRef = useRef<number | null>(null);
+  const viewRef = useRef(view);
   const sawSuccess = useRef(false);
   const timerRef = useRef<number | null>(null);
   fetcherRef.current = fetcher;
-  imageSrcRef.current = imageSrc;
+  viewRef.current = view;
+
+  const count = images?.length ?? 0;
+  const single = view === "single" || count === 1;
+
+  const update = useCallback(
+    (index: number, patch: Partial<ImageState>): void => {
+      setImages((prev) =>
+        prev === null
+          ? prev
+          : prev.map((image, i) =>
+              i === index ? { ...image, ...patch } : image,
+            ),
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     const page = new URL(window.location.href);
-    const fromQuery = page.searchParams.get("name");
-    if (fromQuery) setName(fromQuery);
-    const q = page.search;
-    const initial = `/image${q}`;
-    imageSrcRef.current = initial;
-    setImageSrc(initial);
+    const search = page.search;
     const token = page.searchParams.get("token") ?? "";
-    void fetch(`/__quik/meta${q}`)
-      .then((r) => r.json() as Promise<{ ok?: boolean; name?: string }>)
+    const named = page.searchParams.get("name");
+    const fallback = named !== null && named !== "" ? named : "Image";
+    const adopt = (names: string[]): void => {
+      appliedRef.current = names.map(() => null);
+      setImages(
+        names.map((name, i) => ({
+          name,
+          src: imageUrl(search, i),
+          failedSrc: null,
+          natural: null,
+        })),
+      );
+    };
+    void fetch(`/__quik/meta${search}`)
+      .then((r) => r.json() as Promise<{ ok?: boolean; images?: unknown }>)
       .then((body) => {
-        if (body.ok && body.name) setName(body.name);
+        const names = Array.isArray(body.images)
+          ? body.images.map((entry: unknown) => {
+              const name = (entry as { name?: unknown } | null)?.name;
+              return typeof name === "string" && name ? name : fallback;
+            })
+          : [];
+        adopt(body.ok && names.length > 0 ? names : [fallback]);
       })
       .catch(() => {
-        /* Vite dev has no process meta */
+        // Vite dev has no process meta: show the one image named in the URL.
+        adopt([fallback]);
       });
 
     const submit = (): void => {
       if (timerRef.current === null) return;
-      const current = fetcherRef.current;
-      if (current.state !== "idle") return;
-      const seen = appliedRef.current;
-      void current.submit(
-        { token, seen: seen === null ? "" : String(seen) },
-        { method: "post", action: "/?index" },
-      );
+      const live = fetcherRef.current;
+      if (live.state !== "idle") return;
+      void live.submit({ token }, { method: "post", action: "/?index" });
     };
     timerRef.current = window.setInterval(submit, REVISION_POLL_MS);
     submit();
@@ -99,114 +120,170 @@ function QuikViewer(): React.JSX.Element {
       return;
     }
     sawSuccess.current = true;
-    const decision = applyRevision(appliedRef.current, data);
-    appliedRef.current = decision.applied;
-    if (!decision.changed || decision.applied === null) return;
-    if (decision.showError) {
-      setFailedSrc(imageSrcRef.current);
-      return;
+    if (images === null) return;
+
+    // Terminal arrows reach the process on the PTY; apply new steps here.
+    navRef.current ??= data.nav;
+    const steps = data.nav - navRef.current;
+    navRef.current = data.nav;
+    if (steps !== 0 && viewRef.current === "single" && images.length > 1) {
+      setCurrent((index) => wrap(index + steps, images.length));
     }
-    setFailedSrc(null);
-    const next = imageUrlWithRevision(window.location.search, decision.applied);
-    imageSrcRef.current = next;
-    setImageSrc(next);
-  }, [fetcher.data]);
+
+    const search = window.location.search;
+    data.revisions.slice(0, images.length).forEach((snapshot, i) => {
+      const decision = applyRevision(appliedRef.current[i] ?? null, {
+        ok: true,
+        ...snapshot,
+      });
+      appliedRef.current[i] = decision.applied;
+      if (!decision.changed || decision.applied === null) return;
+      if (decision.showError) {
+        setImages((prev) =>
+          prev === null
+            ? prev
+            : prev.map((image, j) =>
+                j === i ? { ...image, failedSrc: image.src } : image,
+              ),
+        );
+        return;
+      }
+      update(i, {
+        src: imageUrl(search, i, decision.applied),
+        failedSrc: null,
+        natural: null,
+      });
+    });
+  }, [fetcher.data, images, update]);
 
   useEffect(() => {
-    setNatural(null);
-  }, [imageSrc]);
+    if (count < 2) return;
+    const onKey = (event: KeyboardEvent): void => {
+      if (viewRef.current !== "single") return;
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[role=combobox], [role=listbox], input, select")) {
+        return;
+      }
+      event.preventDefault();
+      const step = event.key === "ArrowRight" ? 1 : -1;
+      setCurrent((index) => wrap(index + step, count));
+    };
+    window.addEventListener("keydown", onKey);
+    return (): void => {
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [count]);
+
+  const frame = (
+    index: number,
+    testId: string,
+    imageTestId: string,
+  ): React.JSX.Element | null => {
+    const image = images?.[index];
+    if (!image) return null;
+    return (
+      <ImageFrame
+        src={image.src}
+        name={image.name}
+        bg={bg}
+        zoom={zoom}
+        failed={image.failedSrc === image.src}
+        natural={image.natural}
+        onNatural={(natural) => {
+          update(index, { natural });
+        }}
+        onFailed={(failed) => {
+          update(index, { failedSrc: failed ? image.src : null });
+        }}
+        testId={testId}
+        imageTestId={imageTestId}
+      />
+    );
+  };
+
+  const shape = gridShape(count);
+  const selected = images?.[current];
 
   return (
-    <div data-testid="quik" className="quik-root relative min-h-dvh">
-      {ready ? (
-        <SpaceRain motionMode={mode} data-testid="quik-space-rain" />
+    <div data-testid="quik" className="quik-root" data-view={view}>
+      <header data-testid="quik-toolbar" className="quik-toolbar">
+        <div className="quik-brand">
+          <img
+            src="/images/quikopen-dark-64.webp"
+            srcSet="/images/quikopen-dark-64.webp 1x, /images/quikopen-dark-128.webp 2x, /images/quikopen-dark-200.webp 3x"
+            width={24}
+            height={24}
+            alt="QuikOpen logo"
+            data-testid="quik-logo"
+          />
+          <span className="quik-wordmark font-heading">QuikOpen</span>
+        </div>
+        <div className="quik-title">
+          {count === 1 && selected ? (
+            <span data-testid="quik-filename" className="quik-filename">
+              {selected.name}
+            </span>
+          ) : count > 1 ? (
+            <span data-testid="quik-count" className="quik-count">
+              {count} images
+            </span>
+          ) : null}
+        </div>
+        {count > 1 ? <ViewToggle value={view} onChange={setView} /> : null}
+        <BackgroundSwatches value={bg} onChange={setBg} />
+        <ZoomControl zoom={zoom} onChange={setZoom} />
+        <ExitButton />
+      </header>
+      {images !== null && count > 1 && view === "single" ? (
+        <div className="quik-subbar">
+          <ImageSwitcher
+            names={images.map((image) => image.name)}
+            index={current}
+            onChange={setCurrent}
+          />
+        </div>
       ) : null}
-      <div
-        aria-hidden="true"
-        className="bg-[rgba(17, 18, 25,0.55)] pointer-events-none fixed inset-0 z-[2]"
-      />
-      <main className="relative z-10 flex min-h-dvh items-center justify-center">
-        <section
-          data-testid="quik-shell"
-          className={cn("quik-shell p-5", shellPanel)}
-        >
-          <header
-            data-testid="quik-header"
-            className="mb-[18px] flex shrink-0 flex-col gap-2"
+      <main className="quik-main">
+        {images === null ? null : single ? (
+          frame(count === 1 ? 0 : current, "quik-stage", "quik-image")
+        ) : (
+          <div
+            data-testid="quik-grid"
+            className="quik-grid"
+            data-cols={shape.cols}
+            data-rows={shape.rows}
+            style={{
+              gridTemplateColumns: `repeat(${String(shape.cols)}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${String(shape.rows)}, minmax(0, 1fr))`,
+            }}
           >
-            <div
-              data-testid="quik-header-chrome"
-              className="flex items-center gap-3"
-            >
-              <img
-                src="/images/quikopen-dark-64.webp"
-                srcSet="/images/quikopen-dark-64.webp 1x, /images/quikopen-dark-128.webp 2x, /images/quikopen-dark-200.webp 3x"
-                width={40}
-                height={40}
-                alt="QuikOpen logo"
-                data-testid="quik-logo"
-              />
-              <p className="m-0 min-w-0 flex-1 font-heading text-[0.85rem] font-bold tracking-[0.28em] text-primary">
-                QuikOpen
-              </p>
-              <MotionModeSelector value={mode} onValueChange={setMode} />
-              <ExitButton />
-            </div>
-            <div
-              data-testid="quik-header-controls"
-              className="flex w-full items-center gap-3"
-            >
-              <BackgroundSwatches value={bg} onChange={setBg} />
-              <ZoomControl percent={zoom} onChange={setZoom} />
-            </div>
-            <p
-              className="m-0 w-full truncate text-[0.75rem] tracking-[0.08em] text-muted"
-              data-testid="quik-filename"
-            >
-              {name || "Image"}
-            </p>
-          </header>
-          <div data-testid="quik-stage" className="quik-stage" data-bg={bg}>
-            {failedSrc === imageSrc ? (
-              <p
-                role="alert"
-                data-testid="quik-image-error"
-                className="p-6 text-primary"
+            {images.map((image, i) => (
+              <figure
+                key={String(i)}
+                data-testid="quik-cell"
+                data-index={i}
+                className="quik-cell"
+                title="Double-click to view on its own"
+                onDoubleClick={() => {
+                  setCurrent(i);
+                  setView("single");
+                }}
               >
-                Could not display {name || "this image"}. The file may be
-                damaged, unsupported, or no longer available.
-              </p>
-            ) : null}
-            {imageSrc ? (
-              <img
-                data-testid="quik-image"
-                className="quik-image"
-                key={imageSrc}
-                src={imageSrc}
-                hidden={failedSrc === imageSrc}
-                style={
-                  zoom === ZOOM_DEFAULT || natural === null
-                    ? undefined
-                    : {
-                        width: zoomSize(natural.width, zoom),
-                        height: zoomSize(natural.height, zoom),
-                      }
-                }
-                onError={() => {
-                  setFailedSrc(imageSrc);
-                }}
-                onLoad={(event) => {
-                  setNatural({
-                    width: event.currentTarget.naturalWidth,
-                    height: event.currentTarget.naturalHeight,
-                  });
-                  setFailedSrc(null);
-                }}
-                alt={name || "Image"}
-              />
-            ) : null}
+                <figcaption className="quik-caption">
+                  <span className="quik-caption-number">{i + 1}</span>
+                  <span
+                    data-testid="quik-caption"
+                    className="quik-caption-name"
+                  >
+                    {image.name}
+                  </span>
+                </figcaption>
+                {frame(i, "quik-cell-frame", "quik-cell-image")}
+              </figure>
+            ))}
           </div>
-        </section>
+        )}
       </main>
     </div>
   );

@@ -51,7 +51,7 @@ const images = [
 
 async function openImage(
   owned: RuntimeFixture,
-  file: string,
+  file: string | string[],
   mode: "source" | "compiled",
 ): Promise<{
   child: Bun.Subprocess<"pipe", "pipe", "pipe">;
@@ -65,7 +65,7 @@ async function openImage(
       ? [process.execPath, "--no-env-file", `${root}/cli.ts`]
       : [binary];
   const child = owned.spawn(
-    [...cmd, file],
+    [...cmd, ...(Array.isArray(file) ? file : [file])],
     {
       PATH: process.env.PATH ?? "/usr/bin:/bin",
       QUIK_PKG_ROOT: root,
@@ -127,6 +127,14 @@ for (const mode of ["source", "compiled"] as const) {
             invalid.search = token ? "?token=incorrect" : "";
             expect((await fetch(invalid, { method })).status).toBe(404);
           }
+          const first = new URL(imageUrl);
+          first.searchParams.set("i", "0");
+          expect((await fetch(first, { method })).status).toBe(200);
+          for (const index of ["1", "9", "-1", "x", ""]) {
+            const outside = new URL(imageUrl);
+            outside.searchParams.set("i", index);
+            expect((await fetch(outside, { method })).status).toBe(404);
+          }
         }
         unlinkSync(file);
         expect((await fetch(imageUrl)).status).toBe(404);
@@ -148,22 +156,34 @@ for (const mode of ["source", "compiled"] as const) {
   }, 60000);
 }
 
-async function revisionOf(pageUrl: URL): Promise<{
+interface RevisionBody {
+  ok: boolean;
+  revisions: { revision: number; available: boolean; status?: string }[];
+  nav: number;
+}
+
+async function revisionsOf(pageUrl: URL): Promise<RevisionBody> {
+  const endpoint = new URL("/__quik/revision", pageUrl);
+  endpoint.search = pageUrl.search;
+  const response = await fetch(endpoint);
+  expect(response.status).toBe(200);
+  return (await response.json()) as RevisionBody;
+}
+
+/** One image's entry from the shared poll, flattened as `{ ok, ...entry }`. */
+async function revisionOf(
+  pageUrl: URL,
+  index = 0,
+): Promise<{
   ok: boolean;
   revision: number;
   available: boolean;
   status?: string;
 }> {
-  const endpoint = new URL("/__quik/revision", pageUrl);
-  endpoint.search = pageUrl.search;
-  const response = await fetch(endpoint);
-  expect(response.status).toBe(200);
-  return (await response.json()) as {
-    ok: boolean;
-    revision: number;
-    available: boolean;
-    status?: string;
-  };
+  const body = await revisionsOf(pageUrl);
+  const entry = body.revisions[index];
+  if (!entry) throw new Error(`no revision for image ${String(index)}`);
+  return { ok: body.ok, ...entry };
 }
 
 async function waitRevision(
@@ -173,15 +193,16 @@ async function waitRevision(
     available: boolean;
     status?: string;
   }) => boolean,
+  index = 0,
 ): Promise<{ revision: number; available: boolean; status?: string }> {
   const deadline = Date.now() + 2000;
-  let body = await revisionOf(pageUrl);
+  let body = await revisionOf(pageUrl, index);
   while (!ready(body)) {
     if (Date.now() > deadline) {
       throw new Error(`revision stayed ${JSON.stringify(body)}`);
     }
     await Bun.sleep(20);
-    body = await revisionOf(pageUrl);
+    body = await revisionOf(pageUrl, index);
   }
   return body;
 }
@@ -284,6 +305,45 @@ for (const mode of ["source", "compiled"] as const) {
         (body) => body.status === "too-large",
       );
       expect(huge.available).toBe(false);
+
+      // One process, two images: a change to image 1 bumps only revisions[1].
+      const pairA = resolve(owned.dir, "pair-a.svg");
+      const pairB = resolve(owned.dir, "pair-b.svg");
+      writeFileSync(pairA, first);
+      writeFileSync(pairB, first);
+      const pair = await openImage(owned, [pairA, pairB], mode);
+      const meta = new URL("/__quik/meta", pair.url);
+      meta.search = pair.url.search;
+      expect(await (await fetch(meta)).json()).toEqual({
+        ok: true,
+        images: [{ name: "pair-a.svg" }, { name: "pair-b.svg" }],
+      });
+      expect(await revisionsOf(pair.url)).toEqual({
+        ok: true,
+        revisions: [
+          { revision: 1, available: true },
+          { revision: 1, available: true },
+        ],
+        nav: 0,
+      });
+      writeFileSync(pairB, second);
+      await waitRevision(pair.url, (body) => body.revision > 1, 1);
+      await Bun.sleep(200);
+      expect((await revisionOf(pair.url, 0)).revision).toBe(1);
+      const pairImage = new URL("/image", pair.url);
+      pairImage.search = pair.url.search;
+      pairImage.searchParams.set("i", "1");
+      expect(Buffer.from(await (await fetch(pairImage)).arrayBuffer())).toEqual(
+        second,
+      );
+      pairImage.searchParams.set("i", "0");
+      expect(Buffer.from(await (await fetch(pairImage)).arrayBuffer())).toEqual(
+        first,
+      );
+      await pair.child.stdin.write(new Uint8Array([27]));
+      await pair.child.stdin.flush();
+      await until(() => pair.child.exitCode !== null, "pair watch exit");
+      expect(await pair.child.exited).toBe(0);
 
       await a.child.stdin.write(new Uint8Array([27]));
       await a.child.stdin.flush();
@@ -427,14 +487,50 @@ test("browser compiled images decode, orient, animate, expose alpha and report c
         expect(top[0]).toBeGreaterThan(200);
         expect(bottom.every((v) => v < 30)).toBe(true);
       } else if (item.width >= 2000 || item.height >= 2000) {
-        const sizes = await page.getByTestId("quik-stage").evaluate((el) => ({
-          width: el.clientWidth,
-          height: el.clientHeight,
-          scrollWidth: el.scrollWidth,
-          scrollHeight: el.scrollHeight,
-          pageHeight: document.documentElement.scrollHeight,
-          viewport: innerHeight,
-        }));
+        const stageSizes = async (): Promise<{
+          width: number;
+          height: number;
+          scrollWidth: number;
+          scrollHeight: number;
+          pageHeight: number;
+          viewport: number;
+        }> =>
+          page.getByTestId("quik-stage").evaluate((el) => ({
+            width: el.clientWidth,
+            height: el.clientHeight,
+            scrollWidth: el.scrollWidth,
+            scrollHeight: el.scrollHeight,
+            pageHeight: document.documentElement.scrollHeight,
+            viewport: innerHeight,
+          }));
+        // Fit (default): the whole image fits the stage; nothing scrolls.
+        await browserExpect(page.getByTestId("quik-zoom-percent")).toHaveText(
+          "Fit",
+        );
+        const fitted = await stageSizes();
+        expect(fitted.scrollWidth).toBe(fitted.width);
+        expect(fitted.scrollHeight).toBe(fitted.height);
+        expect(fitted.pageHeight).toBe(fitted.viewport);
+        const box = await image.boundingBox();
+        const stageBox = await page.getByTestId("quik-stage").boundingBox();
+        if (box === null || stageBox === null) throw new Error("no box");
+        expect(box.width).toBeLessThanOrEqual(stageBox.width);
+        expect(box.height).toBeLessThanOrEqual(stageBox.height);
+        await page.screenshot({
+          path: resolve(evidence, `${item.name}-fit.png`),
+        });
+        // 100%: natural size scrolls inside the stage, not the page.
+        await page.getByRole("button", { name: "Zoom in" }).click();
+        await page.getByRole("button", { name: "Zoom out" }).click();
+        await browserExpect(page.getByTestId("quik-zoom-percent")).toHaveText(
+          "100%",
+        );
+        await browserExpect
+          .poll(async () =>
+            image.evaluate((node) => (node as HTMLImageElement).clientWidth),
+          )
+          .toBe(item.width);
+        const sizes = await stageSizes();
         if (item.width >= 2000)
           expect(sizes.scrollWidth).toBeGreaterThan(sizes.width);
         if (item.height >= 2000)
@@ -556,7 +652,7 @@ test("browser compiled image refreshes when the file changes", async () => {
   }
 }, 60000);
 
-test("browser compiled image zooms from the header stepper", async () => {
+test("browser compiled image zooms from the toolbar with Fit by default", async () => {
   const owned = new RuntimeFixture();
   let failed = true;
   const evidence = resolve(root, "../../../../dist/quikopen/zoom/exp1");
@@ -577,10 +673,6 @@ test("browser compiled image zooms from the header stepper", async () => {
     await page.goto(url.href);
     const image = page.getByTestId("quik-image");
     await browserExpect(image).toBeVisible();
-    const shell = await page.getByTestId("quik-shell").boundingBox();
-    if (shell === null) throw new Error("shell has no box");
-    expect(shell.width).toBeGreaterThanOrEqual(512);
-    expect(shell.height).toBeGreaterThanOrEqual(288);
     const natural = await image.evaluate(
       (node) => (node as HTMLImageElement).naturalWidth,
     );
@@ -589,33 +681,51 @@ test("browser compiled image zooms from the header stepper", async () => {
       image.evaluate((node) => (node as HTMLImageElement).clientWidth);
     const scaled = (percent: number): number =>
       Math.round((natural * percent) / 100);
-    expect(await painted()).toBe(scaled(100));
+    // Fit never enlarges: the 32px drawing stays at natural size.
+    await browserExpect.poll(painted).toBe(natural);
     await page.getByTestId("quik-bg-bright").click();
-    const before = await renderedPixels(page, resolve(evidence, "100.png"));
+    const before = await renderedPixels(page, resolve(evidence, "fit.png"));
 
-    const chrome = page.getByTestId("quik-header-chrome");
-    const controls = page.getByTestId("quik-header-controls");
-    await browserExpect(chrome.getByTestId("quik-exit")).toBeVisible();
-    await browserExpect(chrome.getByTestId("quik-bg")).toHaveCount(0);
-    await browserExpect(chrome.getByTestId("quik-zoom")).toHaveCount(0);
-    await browserExpect(controls.getByTestId("quik-bg")).toBeVisible();
-    await browserExpect(controls.getByTestId("quik-zoom")).toBeVisible();
-    const chromeBox = await chrome.boundingBox();
-    const controlsBox = await controls.boundingBox();
-    const filenameBox = await page.getByTestId("quik-filename").boundingBox();
-    if (chromeBox === null || controlsBox === null || filenameBox === null) {
-      throw new Error("header row has no box");
+    // One toolbar row: logo, filename, swatches, zoom and Exit share a centre.
+    const toolbar = page.getByTestId("quik-toolbar");
+    for (const id of [
+      "quik-logo",
+      "quik-filename",
+      "quik-bg",
+      "quik-zoom",
+      "quik-exit",
+    ]) {
+      await browserExpect(toolbar.getByTestId(id)).toBeVisible();
     }
-    expect(controlsBox.y).toBeGreaterThan(chromeBox.y);
-    expect(filenameBox.y).toBeGreaterThan(controlsBox.y);
+    await browserExpect(page.getByTestId("quik-filename")).toHaveText(
+      "sample.svg",
+    );
+    const centres = await toolbar.evaluate((bar) =>
+      Array.from(bar.children).map((node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.top + rect.height / 2;
+      }),
+    );
+    for (const centre of centres) {
+      expect(Math.abs(centre - (centres[0] ?? 0))).toBeLessThanOrEqual(4);
+    }
+
     const zoomIn = page.getByRole("button", { name: "Zoom in" });
     const zoomOut = page.getByRole("button", { name: "Zoom out" });
-    await browserExpect(zoomIn).toBeVisible();
-    await browserExpect(zoomOut).toBeVisible();
+    const fit = page.getByTestId("quik-zoom-fit");
     const percent = page.getByTestId("quik-zoom-percent");
-    await browserExpect(percent).toHaveText("100%");
+    await browserExpect(percent).toHaveText("Fit");
+    await browserExpect(fit).toHaveAttribute("aria-pressed", "true");
     const percentWidth = async (): Promise<number> =>
       percent.evaluate((node) => node.getBoundingClientRect().width);
+    const widthAtFit = await percentWidth();
+    await zoomOut.click();
+    await browserExpect(percent).toHaveText("75%");
+    await browserExpect(fit).toHaveAttribute("aria-pressed", "false");
+    await browserExpect.poll(painted).toBe(scaled(75));
+    await zoomIn.click();
+    await browserExpect(percent).toHaveText("100%");
+    await browserExpect.poll(painted).toBe(scaled(100));
     const widthAt100 = await percentWidth();
     await zoomIn.click();
     await browserExpect.poll(painted).toBe(scaled(125));
@@ -624,7 +734,6 @@ test("browser compiled image zooms from the header stepper", async () => {
     await browserExpect.poll(painted).toBe(scaled(150));
     await zoomOut.click();
     await browserExpect.poll(painted).toBe(scaled(125));
-    expect(await painted()).toBe(scaled(125));
 
     for (let step = 0; step < 4; step += 1) await zoomOut.click();
     await browserExpect(zoomOut).toBeDisabled();
@@ -637,10 +746,8 @@ test("browser compiled image zooms from the header stepper", async () => {
     const widthAt400 = await percentWidth();
     expect(widthAt25).toBe(widthAt100);
     expect(widthAt400).toBe(widthAt100);
+    expect(widthAtFit).toBe(widthAt100);
     expect(await painted()).toBe(scaled(400));
-    const exp2 = resolve(root, "../../../../dist/quikopen/zoom/exp2");
-    mkdirSync(exp2, { recursive: true });
-    await page.screenshot({ path: resolve(exp2, "controls-row.png") });
     await browserExpect(page.getByTestId("quik-stage")).toHaveAttribute(
       "data-bg",
       "bright",
@@ -650,6 +757,9 @@ test("browser compiled image zooms from the header stepper", async () => {
     const afterCenter = centerPixel(after.pixels, after.width);
     expect(afterCenter[0]).toBeGreaterThan(200);
     expect(afterCenter[0]).toBe(beforeCenter[0]);
+    await fit.click();
+    await browserExpect(percent).toHaveText("Fit");
+    await browserExpect.poll(painted).toBe(natural);
     await page.getByTestId("quik-exit").click();
     await until(() => child.exitCode !== null, "zoom UI exit");
     expect(await child.exited).toBe(0);
@@ -663,73 +773,334 @@ test("browser compiled image zooms from the header stepper", async () => {
   }
 }, 60000);
 
-test("browser compiled motion selector drives the rain from the controls row", async () => {
+const nineFixtures = [
+  "sample.svg",
+  "sample.jpg",
+  "transparent.png",
+  "animated.gif",
+  "opaque.webp",
+  "wide.png",
+  "tall.png",
+  "huge.png",
+  "a-very-long-quikopen-filename-that-needs-the-full-card-row.svg",
+];
+
+/** Page geometry every layout must hold: no page scroll, one toolbar row. */
+async function assertLayout(page: Page): Promise<void> {
+  const layout = await page.evaluate(() => {
+    const root = document.documentElement;
+    const bar = document.querySelector("[data-testid=quik-toolbar]");
+    const centres = bar
+      ? Array.from(bar.children).map((node) => {
+          const rect = node.getBoundingClientRect();
+          return { centre: rect.top + rect.height / 2, right: rect.right };
+        })
+      : [];
+    return {
+      scrollHeight: root.scrollHeight,
+      scrollWidth: root.scrollWidth,
+      width: innerWidth,
+      height: innerHeight,
+      centres,
+    };
+  });
+  expect(layout.scrollHeight).toBe(layout.height);
+  expect(layout.scrollWidth).toBe(layout.width);
+  expect(layout.centres.length).toBeGreaterThan(3);
+  const first = layout.centres[0]?.centre ?? 0;
+  for (const child of layout.centres) {
+    expect(Math.abs(child.centre - first)).toBeLessThanOrEqual(4);
+    expect(child.right).toBeLessThanOrEqual(layout.width);
+  }
+}
+
+/** Grid cells: equal sizes, inside the grid, captions ellipsised not spilled. */
+async function gridGeometry(
+  page: Page,
+): Promise<{ cols: number; rows: number; captions: string[] }> {
+  const grid = await page.getByTestId("quik-grid").evaluate((el) => {
+    const outer = el.getBoundingClientRect();
+    const cells = Array.from(
+      el.querySelectorAll("[data-testid=quik-cell]"),
+    ).map((cell) => {
+      const rect = cell.getBoundingClientRect();
+      const caption = cell.querySelector(
+        "[data-testid=quik-caption]",
+      ) as HTMLElement;
+      const style = getComputedStyle(caption);
+      return {
+        x: Math.round(rect.left),
+        y: Math.round(rect.top),
+        width: rect.width,
+        height: rect.height,
+        inside:
+          rect.left >= outer.left - 0.5 &&
+          rect.top >= outer.top - 0.5 &&
+          rect.right <= outer.right + 0.5 &&
+          rect.bottom <= outer.bottom + 0.5,
+        caption: caption.textContent,
+        captionFits:
+          caption.getBoundingClientRect().right <= rect.right + 0.5 &&
+          (caption.scrollWidth <= caption.clientWidth ||
+            style.textOverflow === "ellipsis"),
+      };
+    });
+    return cells;
+  });
+  const first = grid[0];
+  if (!first) throw new Error("grid has no cells");
+  for (const cell of grid) {
+    expect(Math.abs(cell.width - first.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(cell.height - first.height)).toBeLessThanOrEqual(1);
+    expect(cell.inside).toBe(true);
+    expect(cell.captionFits).toBe(true);
+  }
+  return {
+    cols: new Set(grid.map((cell) => cell.x)).size,
+    rows: new Set(grid.map((cell) => cell.y)).size,
+    captions: grid.map((cell) => cell.caption),
+  };
+}
+
+test("browser compiled multi-image grid and single mode", async () => {
   const owned = new RuntimeFixture();
   let failed = true;
-  const evidence = resolve(root, "../../../../dist/quikopen/motion/exp1");
+  const evidence = resolve(root, "../../../../dist/quikopen/multi/exp1");
   mkdirSync(evidence, { recursive: true });
   let browser: Browser | undefined;
   try {
-    const { child, url } = await openImage(
+    browser = await chromium.launch({ channel: "chrome", headless: true });
+    writeFileSync(resolve(evidence, "browser-version.txt"), browser.version());
+    const one = await openImage(
       owned,
       resolve(root, "fixtures/sample.svg"),
       "compiled",
     );
+    const two = await openImage(
+      owned,
+      ["sample.svg", "transparent.png"].map((name) =>
+        resolve(root, "fixtures", name),
+      ),
+      "compiled",
+    );
+    const nine = await openImage(
+      owned,
+      nineFixtures.map((name) => resolve(root, "fixtures", name)),
+      "compiled",
+    );
+
+    for (const [width, height] of [
+      [1000, 800],
+      [700, 500],
+    ] as const) {
+      const page = await browser.newPage({
+        viewport: { width, height },
+        deviceScaleFactor: 2,
+      });
+
+      // One image: no SpaceRain, no motion control, no toggle or switcher.
+      await page.goto(one.url.href);
+      await browserExpect(page.getByTestId("quik-image")).toBeVisible();
+      await browserExpect(page.locator("[data-space-rain-canvas]")).toHaveCount(
+        0,
+      );
+      await browserExpect(page.getByLabel("Motion mode")).toHaveCount(0);
+      await browserExpect(page.getByTestId("quik-view")).toHaveCount(0);
+      await browserExpect(page.getByTestId("quik-switcher")).toHaveCount(0);
+      await browserExpect(page.getByTestId("quik-grid")).toHaveCount(0);
+      await assertLayout(page);
+      await page.screenshot({
+        path: resolve(evidence, `one-${String(width)}.png`),
+      });
+
+      // Two images: Grid by default, 2×1.
+      await page.goto(two.url.href);
+      await browserExpect(page.getByTestId("quik-cell")).toHaveCount(2);
+      await browserExpect(page.getByTestId("quik-view-grid")).toHaveAttribute(
+        "data-state",
+        "on",
+      );
+      await browserExpect(page.getByTestId("quik-count")).toHaveText(
+        "2 images",
+      );
+      const pair = await gridGeometry(page);
+      expect([pair.cols, pair.rows]).toEqual([2, 1]);
+      expect(pair.captions).toEqual(["sample.svg", "transparent.png"]);
+      await assertLayout(page);
+      await page.screenshot({
+        path: resolve(evidence, `grid2-${String(width)}.png`),
+      });
+
+      // Nine images: 3×3, every image decoded, captions match.
+      await page.goto(nine.url.href);
+      const cells = page.getByTestId("quik-cell-image");
+      await browserExpect(cells).toHaveCount(9);
+      await browserExpect
+        .poll(async () =>
+          cells.evaluateAll((nodes) =>
+            nodes.every((node) => (node as HTMLImageElement).naturalWidth > 0),
+          ),
+        )
+        .toBe(true);
+      const grid = await gridGeometry(page);
+      expect([grid.cols, grid.rows]).toEqual([3, 3]);
+      expect(grid.captions).toEqual(nineFixtures);
+      await browserExpect(page.getByTestId("quik-grid")).toHaveAttribute(
+        "data-cols",
+        "3",
+      );
+      // Fit keeps even the 2000px images inside their cells.
+      const contained = await page.evaluate(() =>
+        Array.from(
+          document.querySelectorAll("[data-testid=quik-cell-frame]"),
+        ).every((frame) => {
+          const outer = frame.getBoundingClientRect();
+          const img = frame.querySelector("img")?.getBoundingClientRect();
+          return (
+            img !== undefined &&
+            img.left >= outer.left - 0.5 &&
+            img.right <= outer.right + 0.5 &&
+            img.top >= outer.top - 0.5 &&
+            img.bottom <= outer.bottom + 0.5
+          );
+        }),
+      );
+      expect(contained).toBe(true);
+      await assertLayout(page);
+      await page.screenshot({
+        path: resolve(evidence, `grid9-${String(width)}.png`),
+      });
+
+      // Single: switcher with the select box, previous/next, position.
+      await page.getByTestId("quik-view-single").click();
+      await browserExpect(page.getByTestId("quik-grid")).toHaveCount(0);
+      await browserExpect(page.getByTestId("quik-view-single")).toHaveAttribute(
+        "data-state",
+        "on",
+      );
+      const select = page.getByTestId("quik-select");
+      const position = page.getByTestId("quik-position");
+      const shown = async (): Promise<string | null> =>
+        page.getByTestId("quik-image").getAttribute("alt");
+      await browserExpect(select).toHaveText(`1. ${nineFixtures[0] ?? ""}`);
+      await browserExpect(position).toHaveText("1 / 9");
+      await browserExpect.poll(shown).toBe(nineFixtures[0]);
+      await select.click();
+      const options = page.getByRole("option");
+      await browserExpect(options).toHaveCount(9);
+      expect(await options.allTextContents()).toEqual(
+        nineFixtures.map((name, i) => `${String(i + 1)}. ${name}`),
+      );
+      await page.screenshot({
+        path: resolve(evidence, `select-open-${String(width)}.png`),
+      });
+      await options.nth(2).click();
+      await browserExpect(position).toHaveText("3 / 9");
+      await browserExpect.poll(shown).toBe(nineFixtures[2]);
+      await browserExpect(page.getByTestId("quik-image")).toBeVisible();
+      await assertLayout(page);
+      await page.screenshot({
+        path: resolve(evidence, `single-${String(width)}.png`),
+      });
+      await page.getByTestId("quik-next").click();
+      await browserExpect(position).toHaveText("4 / 9");
+      await page.getByTestId("quik-prev").click();
+      await page.getByTestId("quik-prev").click();
+      await browserExpect(position).toHaveText("2 / 9");
+      await page.getByTestId("quik-prev").click();
+      await page.getByTestId("quik-prev").click();
+      await browserExpect(position).toHaveText("9 / 9");
+      await page.getByTestId("quik-next").click();
+      await browserExpect(position).toHaveText("1 / 9");
+      // Page arrow keys move when focus is outside the select.
+      await page.getByTestId("quik-stage").click();
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("ArrowRight");
+      await browserExpect(position).toHaveText("3 / 9");
+      await page.keyboard.press("ArrowLeft");
+      await browserExpect(position).toHaveText("2 / 9");
+      await browserExpect.poll(shown).toBe(nineFixtures[1]);
+      await select.focus();
+      await page.keyboard.press("ArrowRight");
+      await browserExpect(position).toHaveText("2 / 9");
+      await page.getByTestId("quik-bg-checkered").click();
+      await browserExpect(page.getByTestId("quik-stage")).toHaveAttribute(
+        "data-bg",
+        "checkered",
+      );
+
+      // Back to Grid keeps the background for every cell.
+      await page.getByTestId("quik-view-grid").click();
+      await browserExpect(page.getByTestId("quik-cell")).toHaveCount(9);
+      await browserExpect(page.getByTestId("quik-switcher")).toHaveCount(0);
+      expect(
+        await page
+          .getByTestId("quik-cell-frame")
+          .evaluateAll((nodes) => nodes.map((node) => node.dataset.bg)),
+      ).toEqual(Array.from({ length: 9 }, () => "checkered"));
+      await page.getByTestId("quik-bg-dark").click();
+      // Double-clicking a cell opens it on its own.
+      await page.getByTestId("quik-cell").nth(4).dblclick();
+      await browserExpect(position).toHaveText("5 / 9");
+      await page.getByTestId("quik-view-grid").click();
+      await page.close();
+    }
+
+    for (const opened of [one, two, nine]) {
+      await opened.child.stdin.write(new Uint8Array([27]));
+      await opened.child.stdin.flush();
+      await until(() => opened.child.exitCode !== null, "multi exit");
+      expect(await opened.child.exited).toBe(0);
+    }
+    failed = false;
+  } finally {
+    try {
+      await browser?.close();
+    } finally {
+      await owned.close(failed);
+    }
+  }
+}, 120000);
+
+test("browser compiled terminal arrow keys switch images without exiting", async () => {
+  const owned = new RuntimeFixture();
+  let failed = true;
+  let browser: Browser | undefined;
+  try {
+    const { child, url } = await openImage(
+      owned,
+      nineFixtures.slice(0, 3).map((name) => resolve(root, "fixtures", name)),
+      "compiled",
+    );
     browser = await chromium.launch({ channel: "chrome", headless: true });
-    const context = await browser.newContext({
+    const page = await browser.newPage({
       viewport: { width: 1000, height: 800 },
       deviceScaleFactor: 1,
-      reducedMotion: "reduce",
     });
-    const page = await context.newPage();
-    writeFileSync(resolve(evidence, "browser-version.txt"), browser.version());
     await page.goto(url.href);
-    const chrome = page.getByTestId("quik-header-chrome");
-    const controls = page.getByTestId("quik-header-controls");
-    await browserExpect(controls.getByLabel("Motion mode")).toHaveCount(0);
-    await browserExpect(chrome.getByLabel("Motion mode")).toBeVisible();
-    await browserExpect(
-      chrome.getByRole("radio", { name: "Motion", exact: true }),
-    ).toBeVisible();
-    await browserExpect(
-      chrome.getByRole("radio", { name: "No motion" }),
-    ).toBeVisible();
-    await browserExpect(
-      chrome.getByRole("radio", { name: "System" }),
-    ).toBeVisible();
-    const motionBox = await chrome.getByLabel("Motion mode").boundingBox();
-    const exitBox = await chrome.getByTestId("quik-exit").boundingBox();
-    if (motionBox === null || exitBox === null) {
-      throw new Error("motion or exit has no box");
-    }
-    expect(motionBox.x + motionBox.width).toBeLessThanOrEqual(exitBox.x + 1);
-    expect(Math.abs(motionBox.y - exitBox.y)).toBeLessThan(8);
-    await browserExpect(page.locator("[data-space-rain-canvas]")).toBeVisible();
-    expect(await rainIsStill(page)).toBe(true);
-
-    await chrome.getByRole("radio", { name: "Motion", exact: true }).click();
-    expect(await rainIsStill(page)).toBe(false);
-    await page.screenshot({ path: resolve(evidence, "motion.png") });
-
-    await chrome.getByRole("radio", { name: "No motion" }).click();
-    expect(await rainIsStill(page)).toBe(true);
-    await page.screenshot({ path: resolve(evidence, "no-motion.png") });
-
-    await page.emulateMedia({ reducedMotion: "no-preference" });
-    await chrome.getByRole("radio", { name: "System" }).click();
-    expect(await rainIsStill(page)).toBe(false);
-
-    await page.getByTestId("quik-bg-bright").click();
-    await browserExpect(page.getByTestId("quik-stage")).toHaveAttribute(
-      "data-bg",
-      "bright",
-    );
-    await page.getByRole("button", { name: "Zoom in" }).click();
-    await browserExpect(page.getByTestId("quik-zoom-percent")).toHaveText(
-      "125%",
-    );
-    await page.getByTestId("quik-exit").click();
-    await until(() => child.exitCode !== null, "motion UI exit");
+    await page.getByTestId("quik-view-single").click();
+    const position = page.getByTestId("quik-position");
+    await browserExpect(position).toHaveText("1 / 3");
+    // TermSurf may deliver arrows to the PTY as CSI and SS3 sequences.
+    await child.stdin.write(new Uint8Array([27, 0x5b, 0x43]));
+    await child.stdin.flush();
+    await browserExpect(position).toHaveText("2 / 3");
+    await child.stdin.write(new Uint8Array([27, 0x4f, 0x43]));
+    await child.stdin.flush();
+    await browserExpect(position).toHaveText("3 / 3");
+    await child.stdin.write(new Uint8Array([27]));
+    await child.stdin.flush();
+    // Separate chunks inside the 30ms hold: a split Left, not an exit.
+    await Bun.sleep(5);
+    await child.stdin.write(new Uint8Array([0x5b, 0x44]));
+    await child.stdin.flush();
+    await browserExpect(position).toHaveText("2 / 3");
+    await Bun.sleep(200);
+    expect(child.exitCode).toBeNull();
+    expect((await revisionsOf(url)).nav).toBe(1);
+    await child.stdin.write(new Uint8Array([27]));
+    await child.stdin.flush();
+    await until(() => child.exitCode !== null, "arrow test exit");
     expect(await child.exited).toBe(0);
     failed = false;
   } finally {
@@ -740,17 +1111,6 @@ test("browser compiled motion selector drives the rain from the controls row", a
     }
   }
 }, 60000);
-
-async function rainCorner(page: Page): Promise<Buffer> {
-  return page.screenshot({ clip: { x: 0, y: 0, width: 160, height: 100 } });
-}
-
-async function rainIsStill(page: Page): Promise<boolean> {
-  const first = await rainCorner(page);
-  await page.waitForTimeout(500);
-  const second = await rainCorner(page);
-  return first.equals(second);
-}
 
 async function until(check: () => boolean, label: string): Promise<void> {
   const deadline = Date.now() + 8000;
@@ -974,6 +1334,63 @@ test("source CLI rejects an unsupported path without binding HTTP", async () => 
   }
 });
 
+for (const [label, files, message] of [
+  [
+    "an unsupported second path",
+    (dir: string): string[] => {
+      writeFileSync(`${dir}/nope.txt`, "png");
+      return [fixtureSvg, `${dir}/nope.txt`];
+    },
+    "unsupported image type",
+  ],
+  [
+    "ten paths",
+    (): string[] => Array.from({ length: 10 }, () => fixtureSvg),
+    "too many images (max 9)",
+  ],
+] as const) {
+  test(`source CLI rejects ${label} before binding HTTP or contacting TermSurf`, async () => {
+    const owned = new RuntimeFixture();
+    let failed = true;
+    try {
+      const socket = `${owned.dir}/host-reject`;
+      const fixture = await host(socket, owned);
+      const child = owned.spawn(
+        [
+          process.execPath,
+          "--no-env-file",
+          `${root}/cli.ts`,
+          ...files(owned.dir),
+        ],
+        {
+          PATH: process.env.PATH ?? "/usr/bin:/bin",
+          QUIK_PKG_ROOT: root,
+          TERMSURF_SOCKET: socket,
+          TERMSURF_PANE_ID: "fixture",
+        },
+        root,
+      );
+      await waitUntil(
+        () => child.exitCode !== null || child.signalCode !== null,
+        "invalid CLI exit",
+        2000,
+      );
+      expect(await child.exited).toBe(1);
+      const output = owned.children[0];
+      if (!output) throw new Error("Missing owned child");
+      await Promise.all(output.streams);
+      expect(output.output).toContain(message);
+      expect(output.output).not.toContain("127.0.0.1");
+      expect(fixture.frames).toHaveLength(0);
+      expect(fixture.sockets).toHaveLength(0);
+      noQuikSocks(owned.dir);
+      failed = false;
+    } finally {
+      await owned.close(failed);
+    }
+  });
+}
+
 test("source CLI rejects --server", async () => {
   const owned = new RuntimeFixture();
   let failed = true;
@@ -1070,7 +1487,10 @@ for (const mode of ["source", "compiled"] as const) {
         metaUrl.search = url.search;
         const meta = await fetch(metaUrl);
         expect(meta.status).toBe(200);
-        expect(await meta.json()).toEqual({ ok: true, name: "sample.svg" });
+        expect(await meta.json()).toEqual({
+          ok: true,
+          images: [{ name: "sample.svg" }],
+        });
         if (exit === "ui-x") {
           const result = await fetch(new URL("/__quik/exit", url), {
             method: "POST",

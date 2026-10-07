@@ -60,6 +60,8 @@ import {
   classifyControlByte,
   CTRL_C_BYTE,
   ESC_BYTE,
+  ESC_HOLD_MS,
+  scanStdin,
   watchEscInput,
 } from "./tty-esc.ts";
 
@@ -91,7 +93,7 @@ describe("bufferContainsEsc / classifyControlByte", () => {
 });
 
 describe("watchEscInput", () => {
-  it("fires onEsc once when Esc is written", () => {
+  it("fires onEsc once when Esc is written", async () => {
     const stream = new PassThrough();
     let count = 0;
     const watch = watchEscInput(stream, {
@@ -103,6 +105,8 @@ describe("watchEscInput", () => {
     stream.write(new Uint8Array([0x31])); // '1'
     assert.equal(count, 0);
     stream.write(new Uint8Array([ESC_BYTE]));
+    assert.equal(count, 0); // held: may begin a split arrow sequence
+    await Bun.sleep(ESC_HOLD_MS + 20);
     assert.equal(count, 1);
     stream.write(new Uint8Array([ESC_BYTE]));
     assert.equal(count, 1); // once per watcher
@@ -128,8 +132,13 @@ describe("watchEscInput", () => {
   });
 });
 
-function mockHandles(): { handles: ProcessHandles; closed: { n: number } } {
+function mockHandles(): {
+  handles: ProcessHandles;
+  closed: { n: number };
+  nav: { n: number };
+} {
   const closed = { n: 0 };
+  const nav = { n: 0 };
   const handles: ProcessHandles = {
     token: "t",
     port: 1,
@@ -141,8 +150,11 @@ function mockHandles(): { handles: ProcessHandles; closed: { n: number } } {
     requestExit: () => {
       /* waitForExit wraps this */
     },
+    navigate: (step) => {
+      nav.n += step;
+    },
   };
-  return { handles, closed };
+  return { handles, closed, nav };
 }
 
 describe("waitForExit Esc path (shipped)", () => {
@@ -181,6 +193,95 @@ describe("waitForExit Esc path (shipped)", () => {
     stdin.write(new Uint8Array([CTRL_C_BYTE]));
     const reason = await p;
     assert.equal(reason, "sigint");
+    assert.equal(closed.n, 1);
+  });
+});
+
+describe("arrow keys on stdin", () => {
+  const right = [ESC_BYTE, 0x5b, 0x43];
+  const left = [ESC_BYTE, 0x5b, 0x44];
+  const ss3Right = [ESC_BYTE, 0x4f, 0x43];
+
+  it("scans CSI and SS3 arrows as steps, never as exit", () => {
+    assert.deepEqual(scanStdin(WebBuf.fromArray(right)), {
+      events: [1],
+      pendingEsc: false,
+    });
+    assert.deepEqual(scanStdin(WebBuf.fromArray([...left, ...ss3Right])), {
+      events: [-1, 1],
+      pendingEsc: false,
+    });
+    // Modified arrow (Shift+Right: ESC [ 1 ; 2 C) and other keys.
+    assert.deepEqual(
+      scanStdin(WebBuf.fromArray([ESC_BYTE, 0x5b, 0x31, 0x3b, 0x32, 0x43])),
+      { events: [1], pendingEsc: false },
+    );
+    assert.deepEqual(scanStdin(WebBuf.fromArray([ESC_BYTE, 0x5b, 0x41])), {
+      events: [],
+      pendingEsc: false,
+    });
+    assert.equal(classifyControlByte(WebBuf.fromArray(right)), null);
+  });
+
+  it("keeps bare Esc and Ctrl+C mixed with arrows", () => {
+    assert.deepEqual(
+      scanStdin(WebBuf.fromArray([...right, ESC_BYTE, 0x61])).events,
+      [1, "esc"],
+    );
+    assert.deepEqual(
+      scanStdin(WebBuf.fromArray([...left, CTRL_C_BYTE])).events,
+      [-1, "ctrl-c"],
+    );
+    assert.deepEqual(scanStdin(WebBuf.fromArray([...right, ESC_BYTE])), {
+      events: [1],
+      pendingEsc: true,
+    });
+  });
+
+  it("joins a sequence split after its Esc", () => {
+    const first = scanStdin(WebBuf.fromArray([ESC_BYTE]));
+    assert.equal(first.pendingEsc, true);
+    assert.deepEqual(scanStdin(WebBuf.fromArray([0x5b, 0x44]), true), {
+      events: [-1],
+      pendingEsc: false,
+    });
+    assert.deepEqual(scanStdin(WebBuf.fromArray([0x61]), true).events, ["esc"]);
+  });
+
+  it("watcher reports arrows and exits only on a held bare Esc", async () => {
+    const stream = new PassThrough();
+    const steps: number[] = [];
+    let esc = 0;
+    const watch = watchEscInput(stream, {
+      onEsc: () => {
+        esc++;
+      },
+      onArrow: (step) => {
+        steps.push(step);
+      },
+    });
+    stream.write(new Uint8Array(right));
+    stream.write(new Uint8Array([ESC_BYTE]));
+    stream.write(new Uint8Array([0x5b, 0x44]));
+    await Bun.sleep(ESC_HOLD_MS + 20);
+    assert.deepEqual(steps, [1, -1]);
+    assert.equal(esc, 0);
+    stream.write(new Uint8Array([ESC_BYTE]));
+    await Bun.sleep(ESC_HOLD_MS + 20);
+    assert.equal(esc, 1);
+    watch.stop();
+  });
+
+  it("waitForExit forwards arrows to navigate and keeps running", async () => {
+    const { handles, closed, nav } = mockHandles();
+    const stdin = new PassThrough();
+    const p = waitForExit(handles, { stdin, enableTtyRaw: false });
+    stdin.write(new Uint8Array([...right, ...right, ...left]));
+    await Bun.sleep(ESC_HOLD_MS + 20);
+    assert.equal(nav.n, 1);
+    assert.equal(closed.n, 0);
+    stdin.write(new Uint8Array([ESC_BYTE]));
+    assert.equal(await p, "esc");
     assert.equal(closed.n, 1);
   });
 });

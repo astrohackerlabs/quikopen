@@ -90,8 +90,9 @@ describe("tryHandleIdentity (shipped dispatch)", () => {
     expect(text.split("\n")[0]).toBe(HELP_FIRST_LINE);
     expect(text.startsWith("QuikOpen")).toBe(true);
     expect(text.startsWith("Quikopen")).toBe(false);
-    expect(text).toContain("quikopen <image-path>");
-    expect(text).not.toContain("  quik <image-path>");
+    expect(text).toContain("quikopen <image> [image …]");
+    expect(text).toContain("one to nine images");
+    expect(text).not.toContain("  quik <image");
     expect(helpOutput("1.0.0")).toBe(text);
   });
 

@@ -243,7 +243,14 @@ export default defineConfig({
     // Human-approved framework/API exceptions, Issue 26091023458065 Exp 1.
     // Routes may throw Responses for redirects/404s, not arbitrary values.
     {
-      files: ["**/app/routes/**/*.{ts,tsx}", "**/app/root.tsx"],
+      files: [
+        "**/app/routes/**/*.{ts,tsx}",
+        "**/app/root.tsx",
+        "earthbucks/ts/earthbucks-com/app/server-only/loaders/account.ts",
+        "earthbucks/ts/earthbucks-com/app/server-only/loaders/pagination.ts",
+        // Client-loader adapter throws only React Router HTTP responses too.
+        "earthbucks/ts/earthbucks-com/app/lib/api/page-loader.ts",
+      ],
       rules: {
         "typescript/only-throw-error": [
           "error",

@@ -1,52 +1,75 @@
 import { Button } from "@astrohacker/ui/button";
-import { ButtonGroup } from "@astrohacker/ui/button-group";
 
-import { nextZoom, zoomEdges, zoomLabel } from "~/lib/image-zoom";
+import {
+  nextZoom,
+  zoomEdges,
+  zoomLabel,
+  ZOOM_FIT,
+  type Zoom,
+} from "~/lib/image-zoom";
 
-const controlClass = "h-7 min-h-7 px-2 py-0 text-xs tracking-normal";
-
+/** − / percentage / +. The percentage reads Fit by default; click it to refit. */
 export function ZoomControl({
-  percent,
+  zoom,
   onChange,
 }: {
-  percent: number;
-  onChange: (next: number) => void;
+  zoom: Zoom;
+  onChange: (next: Zoom) => void;
 }): React.JSX.Element {
-  const edges = zoomEdges(percent);
+  const edges = zoomEdges(zoom);
   return (
-    <div data-testid="quik-zoom" className="quik-zoom">
-      <ButtonGroup aria-label="Zoom">
-        <Button
-          type="button"
-          variant="ghost"
-          className={controlClass}
-          aria-label="Zoom out"
-          disabled={edges.minus}
-          onClick={() => {
-            onChange(nextZoom(percent, -1));
-          }}
-        >
-          −
-        </Button>
-        <span
-          data-testid="quik-zoom-percent"
-          className="quik-zoom-percent font-mono text-xs text-primary"
-        >
-          {zoomLabel(percent)}
+    <div
+      data-testid="quik-zoom"
+      className="quik-segmented"
+      role="group"
+      aria-label="Zoom"
+    >
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        typography="ui"
+        className="quik-segment quik-segment-icon"
+        aria-label="Zoom out"
+        disabled={edges.minus}
+        onClick={() => {
+          onChange(nextZoom(zoom, -1));
+        }}
+      >
+        −
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        typography="ui"
+        data-testid="quik-zoom-fit"
+        className="quik-segment quik-zoom-fit"
+        aria-label="Fit images to their frames"
+        aria-pressed={zoom === ZOOM_FIT}
+        title="Fit images to their frames"
+        onClick={() => {
+          onChange(ZOOM_FIT);
+        }}
+      >
+        <span data-testid="quik-zoom-percent" className="quik-zoom-percent">
+          {zoomLabel(zoom)}
         </span>
-        <Button
-          type="button"
-          variant="ghost"
-          className={controlClass}
-          aria-label="Zoom in"
-          disabled={edges.plus}
-          onClick={() => {
-            onChange(nextZoom(percent, 1));
-          }}
-        >
-          +
-        </Button>
-      </ButtonGroup>
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        typography="ui"
+        className="quik-segment quik-segment-icon"
+        aria-label="Zoom in"
+        disabled={edges.plus}
+        onClick={() => {
+          onChange(nextZoom(zoom, 1));
+        }}
+      >
+        +
+      </Button>
     </div>
   );
 }

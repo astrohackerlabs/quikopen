@@ -1,12 +1,16 @@
 /**
  * Unified quikopen entry (compiled to dist/quikopen).
- * One process per overlay: this process binds HTTP, serves the image, and
+ * One process per overlay: this process binds HTTP, serves the images, and
  * talks to TermSurf. No UDS, no --server role.
  *
  * Identity (--version / --help) is handled first so release gates never hang on TermSurf.
  */
 import { tryHandleIdentity } from "./app/cli/product-identity.ts";
-import { startProcess, waitForExit } from "./app/cli/process-runtime.ts";
+import {
+  startProcess,
+  waitForExit,
+  type ImageFile,
+} from "./app/cli/process-runtime.ts";
 import { parseClientArgs } from "./app/cli/parse-args.ts";
 import { resolveImagePath } from "./app/cli/image-path.ts";
 
@@ -21,10 +25,15 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const image = resolveImagePath(parsed.options.file);
-  if (!image.ok) {
-    console.error(image.error);
-    process.exit(1);
+  // Validate every path before binding HTTP or contacting TermSurf.
+  const images: ImageFile[] = [];
+  for (const file of parsed.options.files) {
+    const image = resolveImagePath(file);
+    if (!image.ok) {
+      console.error(image.error);
+      process.exit(1);
+    }
+    images.push({ path: image.path, name: image.name });
   }
 
   try {
@@ -34,7 +43,7 @@ async function main(): Promise<void> {
         browser: parsed.options.browser,
         profile: parsed.options.profile,
       },
-      { path: image.path, name: image.name },
+      images,
     );
     const reason = await waitForExit(handles);
     if (process.env.QUIK_VERBOSE === "1") {

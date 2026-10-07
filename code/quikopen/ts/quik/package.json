@@ -1,9 +1,9 @@
 {
   "name": "@astrohacker/quikopen",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.3.5",
+  "packageManager": "bun@1.4.2",
   "scripts": {
     "dev": "react-router dev --port 3465 --host 127.0.0.1",
     "build": "react-router build",
@@ -16,8 +16,8 @@
     "typecheck": "react-router typegen && tsc --noEmit -p tsconfig.browser.json && tsc --noEmit -p tsconfig.runtime.json",
     "lint": "oxlint --config ../../../oxlint.config.ts --deny-warnings .",
     "lint:fix": "oxlint --config ../../../oxlint.config.ts --deny-warnings --fix .",
-    "format": "prettier --ignore-path ../../../.prettierignore --ignore-path .prettierignore --write .",
-    "format:check": "prettier --ignore-path ../../../.prettierignore --ignore-path .prettierignore --check ."
+    "format": "oxfmt --threads 1 --config oxfmt.config.mjs --ignore-path ../../../.prettierignore --ignore-path .prettierignore --write .",
+    "format:check": "oxfmt --threads 1 --config oxfmt.config.mjs --ignore-path ../../../.prettierignore --ignore-path .prettierignore --check ."
   },
   "bin": {
     "quikopen": "./dist/quikopen"
@@ -31,27 +31,26 @@
     "@webbuf/webbuf": "workspace:^",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "isbot": "^5.1.36",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
+    "isbot": "^5.2.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "react-router": "^8",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@react-router/dev": "^8",
     "@tailwindcss/vite": "^4.2.2",
-    "@types/bun": "^1.4.0",
-    "@types/node": "^26.3.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
-    "prettier": "3.9.6",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "oxfmt": "0.72.0",
     "tailwindcss": "^4.2.2",
     "typescript": "7.0.2",
-    "vite": "^8.2.2",
+    "vite": "^8.3.3",
     "vite-tsconfig-paths": "^6",
-    "oxlint": "1.80.0",
-    "oxlint-tsgolint": "7.0.2001",
-    "prettier-plugin-tailwindcss": "0.8.1"
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2003"
   }
 }

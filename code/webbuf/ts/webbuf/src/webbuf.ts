@@ -360,6 +360,14 @@ export class WebBuf implements Iterable<number> {
     return WebBuf.fromHexWasm(hex);
   }
 
+  /** Decode lowercase ASCII byte hex, rejecting all malformed input. */
+  static fromStrictHex(hex: string): WebBuf {
+    if (hex.length % 2 !== 0 || /[^0-9a-f]/.test(hex)) {
+      throw new Error("Invalid hex string");
+    }
+    return WebBuf.fromHex(hex);
+  }
+
   toHexPureJs(): string {
     return Array.from(this)
       .map((byte) => byte.toString(16).padStart(2, "0"))

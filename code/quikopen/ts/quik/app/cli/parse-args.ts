@@ -4,16 +4,20 @@
  */
 
 export interface ClientCliOptions {
-  file: string;
+  files: string[];
   browser: string;
   profile: string;
 }
 
 export type ParseArgsResult =
-  { ok: true; options: ClientCliOptions } | { ok: false; error: string };
+  | { ok: true; options: ClientCliOptions }
+  | { ok: false; error: string };
 
 const DEFAULT_BROWSER = "";
 const DEFAULT_PROFILE = "default";
+
+/** Grid tops out at 3×3. */
+export const MAX_IMAGES = 9;
 
 /**
  * Bun `build --compile` injects the virtual entry path into process.argv
@@ -25,7 +29,7 @@ export function isBunCompileVirtualEntry(arg: string): boolean {
 
 /**
  * Parse process.argv-style args (includes argv0).
- * Supports: one positional image path, --browser / -b, --profile / -p.
+ * Supports: one to nine positional image paths, --browser / -b, --profile / -p.
  * Values may be `--flag=value` or `--flag value`.
  * Skips Bun compiled-binary virtual entry paths (`/$bunfs/…`).
  */
@@ -35,7 +39,7 @@ export function parseClientArgs(
 ): ParseArgsResult {
   let browser: string | undefined;
   let profile: string | undefined;
-  let file: string | undefined;
+  const files: string[] = [];
 
   for (let i = 1; i < argv.length; i++) {
     const a = argv[i] ?? "";
@@ -85,20 +89,23 @@ export function parseClientArgs(
     if (a.startsWith("-")) {
       return { ok: false, error: `unknown option: ${a}` };
     }
-    if (file !== undefined) {
-      return { ok: false, error: `unexpected argument: ${a}` };
-    }
-    file = a;
+    files.push(a);
   }
 
-  if (!file) {
+  if (files.length === 0) {
     return { ok: false, error: "missing image path" };
+  }
+  if (files.length > MAX_IMAGES) {
+    return {
+      ok: false,
+      error: `too many images (max ${String(MAX_IMAGES)})`,
+    };
   }
 
   return {
     ok: true,
     options: {
-      file,
+      files,
       browser: browser ?? DEFAULT_BROWSER,
       profile: profile ?? DEFAULT_PROFILE,
     },

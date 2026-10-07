@@ -53,30 +53,29 @@ test("advancePublication ignores an unchanged signature", () => {
   expect(next.status).toBeUndefined();
 });
 
-test("revisionResponse returns the snapshot and refuses a bad token", async () => {
-  const ok = revisionResponse("secret", "secret", {
-    revision: 4,
-    available: true,
-  });
+test("revisionResponse returns every snapshot and nav, refusing a bad token", async () => {
+  const ok = revisionResponse(
+    "secret",
+    "secret",
+    [
+      { revision: 4, available: true },
+      { revision: 5, available: false, status: "missing" },
+    ],
+    -2,
+  );
   expect(ok.status).toBe(200);
-  expect(await ok.json()).toEqual({ ok: true, revision: 4, available: true });
-
-  const missing = revisionResponse("secret", "secret", {
-    revision: 5,
-    available: false,
-    status: "missing",
-  });
-  expect(await missing.json()).toEqual({
+  expect(await ok.json()).toEqual({
     ok: true,
-    revision: 5,
-    available: false,
-    status: "missing",
+    revisions: [
+      { revision: 4, available: true },
+      { revision: 5, available: false, status: "missing" },
+    ],
+    nav: -2,
   });
 
-  const denied = revisionResponse("secret", "nope", {
-    revision: 1,
-    available: true,
-  });
+  const denied = revisionResponse("secret", "nope", [
+    { revision: 1, available: true },
+  ]);
   expect(denied.status).toBe(404);
   expect(await denied.json()).toEqual({
     ok: false,
