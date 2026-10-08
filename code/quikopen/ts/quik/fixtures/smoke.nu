@@ -26,8 +26,8 @@ def main [] {
         if $env.LAST_EXIT_CODE != 0 { error make {msg: $"Smoke failed opening ($item.0)"} }
     }
     let multi = [
-        [[sample.svg transparent.png] "two images: 2×1 grid; toggle Single and back"]
-        [[sample.svg sample.jpg transparent.png animated.gif opaque.webp wide.png tall.png huge.png a-very-long-quikopen-filename-that-needs-the-full-card-row.svg] "nine images: 3×3 grid; Single mode select box, previous/next, Left/Right keys, double-click a cell"]
+        [[sample.svg transparent.png] "two images: Thumbnails by default; toggle Grid (2×1), Single and back"]
+        [[sample.svg sample.jpg transparent.png animated.gif opaque.webp wide.png tall.png huge.png a-very-long-quikopen-filename-that-needs-the-full-card-row.svg] "nine images: Thumbnails sidebar click, Up/Down/Left/Right keys and scrolling; 3×3 Grid; Single select box, previous/next; double-click a cell"]
     ]
     for item in $multi {
         print $"($item.1). Close this viewer to continue."

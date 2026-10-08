@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "version": "0.1.7",
-  "monorepo_commit": "671e32aec24be0aee5af483d88e46f1f09e5beeb",
+  "version": "0.1.8",
+  "monorepo_commit": "91762b3a7d34b9edf073f31690e70ca9db967292",
   "files": [
     {
       "path": ".gitignore",
@@ -21,7 +21,7 @@
     },
     {
       "path": "bun.lock",
-      "sha256": "dfda8f44f31589364a472dbe11594596d9fbb78fb9f1d709097275195aeabb4c"
+      "sha256": "f4541a274620a9378457aa2c79c7b85113a66e63f0ae05f5728716d825799602"
     },
     {
       "path": "code/.prettierignore",
@@ -165,7 +165,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/app.css",
-      "sha256": "759d0fd3bf10f2d69dc7ca268c1b727bb60e0be791c6a903c8ae0fd39a089d5a"
+      "sha256": "e56f13e5d5a8bd0b38761a113c2fc9531f3a74aa9914f96a4f46b7429af82401"
     },
     {
       "path": "code/quikopen/ts/quik/app/assets.d.ts",
@@ -173,7 +173,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/embedded-version.ts",
-      "sha256": "21d24f907f8b52a0258f1bd158feb669cac4a044164cc5a10e5322bed971ad98"
+      "sha256": "ba350a0854756d0d6ec18f0464b8b35598da2d3ebb4adbf04525bc8c3b39a1b0"
     },
     {
       "path": "code/quikopen/ts/quik/app/cli/geometry.test.ts",
@@ -300,12 +300,16 @@
       "sha256": "a889a55938518e35d6a3a4707328f448fb445d6a4c81bea114f978cf2c323da3"
     },
     {
+      "path": "code/quikopen/ts/quik/app/components/thumbnail-sidebar.tsx",
+      "sha256": "7f8300b99c0c28e81478b268aae027f8593da7dd573edf6a626e489d98340d59"
+    },
+    {
       "path": "code/quikopen/ts/quik/app/components/view-toggle.tsx",
-      "sha256": "967805e7b88f044a964c91d9059c9cab93a08e26ab7872e1d17274bf4e60a0cd"
+      "sha256": "fee19fd80cd27e6a508ef6f99c5bb98219250d73d58d0966c0a9e74181f0279b"
     },
     {
       "path": "code/quikopen/ts/quik/app/components/viewer-page.tsx",
-      "sha256": "6072db546293bd18049a331591189174a53f6581ddcb73996d20f8c783066629"
+      "sha256": "3e6be7637de191471d4d426e024489c0ca09fcac051a1d9c016230ec3691aaa0"
     },
     {
       "path": "code/quikopen/ts/quik/app/components/zoom-control.tsx",
@@ -326,6 +330,14 @@
     {
       "path": "code/quikopen/ts/quik/app/lib/image-grid.ts",
       "sha256": "8c1fd4859896cbb4ac10cd6fa12a917cb3fb45b31b3b80696eabb51ca676edf2"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/lib/image-nav.test.ts",
+      "sha256": "98018f60fd9aa68e5839c29c91b5efef2bc68bbaf70df8a7dc1353c9e66b803e"
+    },
+    {
+      "path": "code/quikopen/ts/quik/app/lib/image-nav.ts",
+      "sha256": "01a3bea8530850d3d6b4e284845a6765f7d6606e999290179b69a6216abe5c4f"
     },
     {
       "path": "code/quikopen/ts/quik/app/lib/image-revision.test.ts",
@@ -417,7 +429,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/fixtures/smoke.nu",
-      "sha256": "99751671b40f08f1ae48e07b2991b62deac98514baba67358ffaf4915701263e"
+      "sha256": "858be5a9eb88057061f586b50356d57cf49910222bd49f0e395a65b3a6d00d93"
     },
     {
       "path": "code/quikopen/ts/quik/fixtures/tall.png",
@@ -453,7 +465,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/package.json",
-      "sha256": "7639fc0c31793099a9b32018522e75feaad2762fa255cdb7a015234098dc2c4f"
+      "sha256": "282a2f9ee63e1282ead15b6e2db5bcd1ce6450f00254c86c68d5a88a33aa0c7a"
     },
     {
       "path": "code/quikopen/ts/quik/public/images/astrohacker-7-dark-128.webp",
@@ -489,7 +501,7 @@
     },
     {
       "path": "code/quikopen/ts/quik/test/native-runtime.integration.test.ts",
-      "sha256": "1b057387cd457871b36a3e6ae95ae2848c5d53cd3464aa17428de860233a5797"
+      "sha256": "fac55c3de976c8a7533634b94ceb4f983676823e23acb6966ab554844e742d99"
     },
     {
       "path": "code/quikopen/ts/quik/test/runtime-fixture.ts",

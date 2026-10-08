@@ -652,6 +652,69 @@ test("browser compiled image refreshes when the file changes", async () => {
   }
 }, 60000);
 
+test("browser compiled thumbnails refresh and fail per image", async () => {
+  const owned = new RuntimeFixture();
+  let failed = true;
+  let browser: Browser | undefined;
+  const svg = (fill: string): string =>
+    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="${fill}"/></svg>`;
+  try {
+    const files = ["first.svg", "second.svg"].map((name) =>
+      resolve(owned.dir, name),
+    );
+    for (const file of files) writeFileSync(file, svg("#ff0000"));
+    const { child, url } = await openImage(owned, files, "compiled");
+    browser = await chromium.launch({ channel: "chrome", headless: true });
+    const page = await browser.newPage({
+      viewport: { width: 1000, height: 800 },
+      deviceScaleFactor: 1,
+    });
+    await page.goto(url.href);
+    const thumbImages = page.getByTestId("quik-thumb-image");
+    await browserExpect(thumbImages).toHaveCount(2);
+    await page.getByTestId("quik-thumb").nth(1).click();
+    const stage = page.getByTestId("quik-image");
+    await browserExpect(stage).toHaveAttribute("src", /i=1/);
+    const firstSrc = await thumbImages.nth(0).getAttribute("src");
+
+    const second = files[1] ?? "";
+    writeFileSync(second, svg("#0000ff"));
+    await browserExpect(thumbImages.nth(1)).toHaveAttribute("src", /v=/);
+    await browserExpect(stage).toHaveAttribute("src", /i=1.*v=|v=.*i=1/);
+    expect(await thumbImages.nth(1).getAttribute("src")).toBe(
+      await stage.getAttribute("src"),
+    );
+    expect(await thumbImages.nth(0).getAttribute("src")).toBe(firstSrc);
+
+    writeFileSync(second, "not an image");
+    const thumbs = page.getByTestId("quik-thumb");
+    await browserExpect(
+      thumbs.nth(1).getByTestId("quik-thumb-error"),
+    ).toHaveCount(1);
+    await browserExpect(page.getByTestId("quik-image-error")).toBeVisible();
+    await browserExpect(
+      thumbs.nth(0).getByTestId("quik-thumb-error"),
+    ).toHaveCount(0);
+    await browserExpect(thumbs.nth(1)).toHaveAttribute("aria-current", "true");
+
+    writeFileSync(second, svg("#00ff00"));
+    await browserExpect(
+      thumbs.nth(1).getByTestId("quik-thumb-image"),
+    ).toHaveCount(1);
+    await browserExpect(page.getByTestId("quik-image-error")).toHaveCount(0);
+    await page.getByTestId("quik-exit").click();
+    await until(() => child.exitCode !== null, "thumbnail refresh exit");
+    expect(await child.exited).toBe(0);
+    failed = false;
+  } finally {
+    try {
+      await browser?.close();
+    } finally {
+      await owned.close(failed);
+    }
+  }
+}, 60000);
+
 test("browser compiled image zooms from the toolbar with Fit by default", async () => {
   const owned = new RuntimeFixture();
   let failed = true;
@@ -862,11 +925,114 @@ async function gridGeometry(
   };
 }
 
-test("browser compiled multi-image grid and single mode", async () => {
+/**
+ * Thumbnails view: sidebar beside the stage, equal tiles in one column,
+ * previews inside their tiles, captions inside their buttons.
+ */
+async function assertThumbs(page: Page, names: string[]): Promise<void> {
+  const thumbs = page.getByTestId("quik-thumb");
+  await browserExpect(thumbs).toHaveCount(names.length);
+  await browserExpect
+    .poll(async () =>
+      page
+        .getByTestId("quik-thumb-image")
+        .evaluateAll((nodes) =>
+          nodes.every(
+            (node) =>
+              (node as HTMLImageElement).complete &&
+              (node as HTMLImageElement).naturalWidth > 0,
+          ),
+        ),
+    )
+    .toBe(true);
+  const geometry = await page.evaluate(() => {
+    const box = (el: Element | null): DOMRect => {
+      if (!el) throw new Error("missing element");
+      return el.getBoundingClientRect();
+    };
+    const mainEl = document.querySelector(".quik-main");
+    if (!mainEl) throw new Error("missing main");
+    const main = box(mainEl);
+    const style = getComputedStyle(mainEl);
+    const side = box(document.querySelector("[data-testid=quik-thumbs]"));
+    const stage = box(document.querySelector("[data-testid=quik-stage]"));
+    const buttons = Array.from(
+      document.querySelectorAll("[data-testid=quik-thumb]"),
+    );
+    return {
+      inner: {
+        left: main.left + parseFloat(style.paddingLeft),
+        right: main.right - parseFloat(style.paddingRight),
+      },
+      side: { left: side.left, right: side.right },
+      stage: { left: stage.left, right: stage.right },
+      indexes: buttons.map((b) => Number((b as HTMLElement).dataset.index)),
+      labels: buttons.map((b) => b.getAttribute("aria-label") ?? ""),
+      tiles: buttons.map((button) => {
+        const rect = button.getBoundingClientRect();
+        const tile = box(button.querySelector("[data-testid=quik-thumb-tile]"));
+        const img = button.querySelector("img")?.getBoundingClientRect();
+        const caption = button.querySelector(".quik-thumb-caption");
+        const name = button.querySelector(
+          "[data-testid=quik-thumb-name]",
+        ) as HTMLElement;
+        return {
+          x: rect.left,
+          width: tile.width,
+          height: tile.height,
+          imageInside:
+            img !== undefined &&
+            img.left >= tile.left - 0.5 &&
+            img.right <= tile.right + 0.5 &&
+            img.top >= tile.top - 0.5 &&
+            img.bottom <= tile.bottom + 0.5,
+          captionInside: box(caption).right <= rect.right + 0.5,
+          nameFits:
+            name.offsetWidth === 0 ||
+            name.scrollWidth <= name.clientWidth ||
+            getComputedStyle(name).textOverflow === "ellipsis",
+        };
+      }),
+    };
+  });
+  // The sidebar comes first, the stage fills the rest, no overlap.
+  expect(geometry.side.right).toBeLessThanOrEqual(geometry.stage.left);
+  expect(Math.abs(geometry.stage.right - geometry.inner.right)).toBeLessThan(
+    1.5,
+  );
+  expect(geometry.side.left).toBeGreaterThanOrEqual(geometry.inner.left - 1);
+  expect(geometry.indexes).toEqual(names.map((_, i) => i));
+  geometry.labels.forEach((label, i) => {
+    expect(label).toContain(names[i] ?? "");
+  });
+  const first = geometry.tiles[0];
+  if (!first) throw new Error("no thumbnails");
+  for (const tile of geometry.tiles) {
+    expect(Math.abs(tile.x - first.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(tile.width - first.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(tile.height - first.height)).toBeLessThanOrEqual(1);
+    expect(tile.imageInside).toBe(true);
+    expect(tile.captionInside).toBe(true);
+    expect(tile.nameFits).toBe(true);
+  }
+}
+
+/** The data-index of the one thumbnail marked aria-current. */
+async function currentThumb(page: Page): Promise<number[]> {
+  return page
+    .locator("[data-testid=quik-thumb][aria-current=true]")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => Number((node as HTMLElement).dataset.index)),
+    );
+}
+
+test("browser compiled multi-image grid, single and thumbnail views", async () => {
   const owned = new RuntimeFixture();
   let failed = true;
   const evidence = resolve(root, "../../../../dist/quikopen/multi/exp1");
   mkdirSync(evidence, { recursive: true });
+  const thumbsEvidence = resolve(root, "../../../../dist/quikopen/thumbs/exp1");
+  mkdirSync(thumbsEvidence, { recursive: true });
   let browser: Browser | undefined;
   try {
     browser = await chromium.launch({ channel: "chrome", headless: true });
@@ -910,11 +1076,35 @@ test("browser compiled multi-image grid and single mode", async () => {
       await browserExpect(page.getByTestId("quik-grid")).toHaveCount(0);
       await assertLayout(page);
       await page.screenshot({
+        animations: "disabled",
         path: resolve(evidence, `one-${String(width)}.png`),
       });
 
-      // Two images: Grid by default, 2×1.
+      // Two images: Thumbnails by default, then Grid 2×1.
       await page.goto(two.url.href);
+      const twoNames = ["sample.svg", "transparent.png"];
+      await browserExpect(page.getByTestId("quik-view-thumbs")).toHaveAttribute(
+        "data-state",
+        "on",
+      );
+      expect(
+        await page
+          .getByTestId("quik-view")
+          .locator("[data-testid^=quik-view-]")
+          .evaluateAll((nodes) =>
+            nodes.map((node) => (node as HTMLElement).dataset.testid),
+          ),
+      ).toEqual(["quik-view-thumbs", "quik-view-grid", "quik-view-single"]);
+      await browserExpect(page.getByTestId("quik-switcher")).toHaveCount(0);
+      await browserExpect(page.getByTestId("quik-grid")).toHaveCount(0);
+      await assertThumbs(page, twoNames);
+      expect(await currentThumb(page)).toEqual([0]);
+      await assertLayout(page);
+      await page.screenshot({
+        animations: "disabled",
+        path: resolve(thumbsEvidence, `thumbs2-${String(width)}.png`),
+      });
+      await page.getByTestId("quik-view-grid").click();
       await browserExpect(page.getByTestId("quik-cell")).toHaveCount(2);
       await browserExpect(page.getByTestId("quik-view-grid")).toHaveAttribute(
         "data-state",
@@ -928,11 +1118,91 @@ test("browser compiled multi-image grid and single mode", async () => {
       expect(pair.captions).toEqual(["sample.svg", "transparent.png"]);
       await assertLayout(page);
       await page.screenshot({
+        animations: "disabled",
         path: resolve(evidence, `grid2-${String(width)}.png`),
       });
 
-      // Nine images: 3×3, every image decoded, captions match.
+      // Nine images in Thumbnails: select by click and keys, wrap, scroll.
       await page.goto(nine.url.href);
+      await assertThumbs(page, nineFixtures);
+      await assertLayout(page);
+      await page.screenshot({
+        animations: "disabled",
+        path: resolve(thumbsEvidence, `thumbs9-${String(width)}.png`),
+      });
+      const stageSrc = async (): Promise<string | null> =>
+        page.getByTestId("quik-image").getAttribute("src");
+      await page.getByTestId("quik-thumb").nth(2).click();
+      await browserExpect.poll(stageSrc).toContain("i=2");
+      expect(await currentThumb(page)).toEqual([2]);
+      for (const [key, expected] of [
+        ["ArrowDown", 3],
+        ["ArrowUp", 2],
+        ["ArrowRight", 3],
+        ["ArrowLeft", 2],
+      ] as const) {
+        await page.keyboard.press(key);
+        await browserExpect.poll(() => currentThumb(page)).toEqual([expected]);
+      }
+      await page.getByTestId("quik-thumb").nth(0).click();
+      await page.keyboard.press("ArrowUp");
+      await browserExpect.poll(() => currentThumb(page)).toEqual([8]);
+      await browserExpect.poll(stageSrc).toContain("i=8");
+      // The selected preview is fully visible inside the sidebar.
+      const visible = await page.evaluate(() => {
+        const list = document.querySelector("[data-testid=quik-thumbs]");
+        const selected = document.querySelector(
+          "[data-testid=quik-thumb][aria-current=true]",
+        );
+        if (!list || !selected) throw new Error("missing thumbnails");
+        const side = list.getBoundingClientRect();
+        const thumb = selected.getBoundingClientRect();
+        return {
+          inside:
+            thumb.top >= side.top - 0.5 && thumb.bottom <= side.bottom + 0.5,
+          overflows: list.scrollHeight > list.clientHeight,
+        };
+      });
+      expect(visible.inside).toBe(true);
+      if (height === 500) expect(visible.overflows).toBe(true);
+      await page.keyboard.press("ArrowDown");
+      await browserExpect.poll(() => currentThumb(page)).toEqual([0]);
+      // Background reaches every tile; zoom reaches only the stage.
+      await page.getByTestId("quik-bg-checkered").click();
+      expect(
+        await page
+          .getByTestId("quik-thumb-tile")
+          .evaluateAll((nodes) => nodes.map((node) => node.dataset.bg)),
+      ).toEqual(Array.from({ length: 9 }, () => "checkered"));
+      await page.getByTestId("quik-thumb").nth(7).click();
+      await page.screenshot({
+        animations: "disabled",
+        path: resolve(thumbsEvidence, `thumbs9-checkered-${String(width)}.png`),
+      });
+      for (let i = 0; i < 4; i += 1) await page.getByLabel("Zoom in").click();
+      await browserExpect(page.getByTestId("quik-zoom-percent")).toHaveText(
+        "200%",
+      );
+      await assertThumbs(page, nineFixtures);
+      const stageScrolls = await page
+        .getByTestId("quik-stage")
+        .evaluate((el) => el.scrollWidth > el.clientWidth);
+      expect(stageScrolls).toBe(true);
+      await page.getByTestId("quik-zoom-fit").click();
+      await page.getByTestId("quik-bg-dark").click();
+      await page.getByTestId("quik-thumb").nth(0).click();
+      await page.getByTestId("quik-view-grid").click();
+      for (const [id, state] of [
+        ["thumbs", "off"],
+        ["grid", "on"],
+        ["single", "off"],
+      ] as const) {
+        await browserExpect(
+          page.getByTestId(`quik-view-${id}`),
+        ).toHaveAttribute("data-state", state);
+      }
+
+      // Nine images: 3×3, every image decoded, captions match.
       const cells = page.getByTestId("quik-cell-image");
       await browserExpect(cells).toHaveCount(9);
       await browserExpect
@@ -968,6 +1238,7 @@ test("browser compiled multi-image grid and single mode", async () => {
       expect(contained).toBe(true);
       await assertLayout(page);
       await page.screenshot({
+        animations: "disabled",
         path: resolve(evidence, `grid9-${String(width)}.png`),
       });
 
@@ -992,6 +1263,7 @@ test("browser compiled multi-image grid and single mode", async () => {
         nineFixtures.map((name, i) => `${String(i + 1)}. ${name}`),
       );
       await page.screenshot({
+        animations: "disabled",
         path: resolve(evidence, `select-open-${String(width)}.png`),
       });
       await options.nth(2).click();
@@ -1000,6 +1272,7 @@ test("browser compiled multi-image grid and single mode", async () => {
       await browserExpect(page.getByTestId("quik-image")).toBeVisible();
       await assertLayout(page);
       await page.screenshot({
+        animations: "disabled",
         path: resolve(evidence, `single-${String(width)}.png`),
       });
       await page.getByTestId("quik-next").click();
@@ -1042,6 +1315,10 @@ test("browser compiled multi-image grid and single mode", async () => {
       // Double-clicking a cell opens it on its own.
       await page.getByTestId("quik-cell").nth(4).dblclick();
       await browserExpect(position).toHaveText("5 / 9");
+      // Thumbnails keeps the selection made in other views.
+      await page.getByTestId("quik-view-thumbs").click();
+      await browserExpect(page.getByTestId("quik-switcher")).toHaveCount(0);
+      expect(await currentThumb(page)).toEqual([4]);
       await page.getByTestId("quik-view-grid").click();
       await page.close();
     }
@@ -1078,6 +1355,15 @@ test("browser compiled terminal arrow keys switch images without exiting", async
       deviceScaleFactor: 1,
     });
     await page.goto(url.href);
+    // Thumbnails (the default) follows PTY arrows too.
+    await browserExpect(page.getByTestId("quik-thumb")).toHaveCount(3);
+    await child.stdin.write(new Uint8Array([27, 0x5b, 0x43]));
+    await child.stdin.flush();
+    await browserExpect.poll(() => currentThumb(page)).toEqual([1]);
+    await child.stdin.write(new Uint8Array([27, 0x5b, 0x44]));
+    await child.stdin.flush();
+    await browserExpect.poll(() => currentThumb(page)).toEqual([0]);
+    expect(child.exitCode).toBeNull();
     await page.getByTestId("quik-view-single").click();
     const position = page.getByTestId("quik-position");
     await browserExpect(position).toHaveText("1 / 3");

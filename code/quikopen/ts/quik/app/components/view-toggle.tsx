@@ -1,6 +1,18 @@
 import { ToggleGroup, ToggleGroupItem } from "@astrohacker/ui/toggle-group";
+import type { ViewMode } from "~/lib/image-nav";
 
-export type ViewMode = "grid" | "single";
+export type { ViewMode };
+
+function ThumbsIcon(): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" className="quik-icon">
+      <rect x="1.5" y="1.5" width="3.5" height="3.5" rx="0.75" />
+      <rect x="1.5" y="6.25" width="3.5" height="3.5" rx="0.75" />
+      <rect x="1.5" y="11" width="3.5" height="3.5" rx="0.75" />
+      <rect x="6.5" y="1.5" width="8" height="13" rx="1.25" />
+    </svg>
+  );
+}
 
 function GridIcon(): React.JSX.Element {
   return (
@@ -22,11 +34,12 @@ function SingleIcon(): React.JSX.Element {
 }
 
 const MODES: { id: ViewMode; label: string; icon: React.JSX.Element }[] = [
+  { id: "thumbs", label: "Thumbnails", icon: <ThumbsIcon /> },
   { id: "grid", label: "Grid", icon: <GridIcon /> },
   { id: "single", label: "Single", icon: <SingleIcon /> },
 ];
 
-/** Grid (default) or one image at a time with a switcher. */
+/** Thumbnails (default), Grid, or one image at a time with a switcher. */
 export function ViewToggle({
   value,
   onChange,
@@ -42,7 +55,8 @@ export function ViewToggle({
       value={value}
       onValueChange={(next) => {
         // Radix clears the value when the pressed item is clicked again.
-        if (next === "grid" || next === "single") onChange(next);
+        const mode = MODES.find((entry) => entry.id === next);
+        if (mode) onChange(mode.id);
       }}
       data-testid="quik-view"
       className="quik-segmented"

@@ -41,7 +41,7 @@
     },
     "code/quikopen/ts/quik": {
       "name": "@astrohacker/quikopen",
-      "version": "0.1.7",
+      "version": "0.1.8",
       "bin": {
         "quikopen": "./dist/quikopen"
       },

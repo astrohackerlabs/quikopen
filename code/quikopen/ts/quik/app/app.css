@@ -371,6 +371,137 @@ body {
   padding: 12px;
 }
 
+/* Thumbnails view: preview sidebar beside the selected image. */
+.quik-main[data-view="thumbs"] {
+  flex-direction: row;
+  gap: 12px;
+}
+
+.quik-thumbs {
+  flex: 0 0 184px;
+  min-height: 0;
+  padding: 0 6px 0 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ah-border) transparent;
+}
+
+.quik-thumb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quik-thumb {
+  appearance: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--ah-border);
+  border-radius: var(--radius);
+  background: rgba(41, 46, 66, 0.4);
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms,
+    background-color 120ms;
+}
+
+.quik-thumb:hover {
+  border-color: rgba(122, 162, 247, 0.6);
+}
+
+/* The ring sits above the positioned tile so it stays visible. */
+.quik-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.quik-thumb[aria-current="true"] {
+  border-color: var(--ah-primary);
+  background: rgba(122, 162, 247, 0.12);
+}
+
+.quik-thumb[aria-current="true"]::after {
+  box-shadow: inset 0 0 0 1px var(--ah-primary);
+}
+
+.quik-thumb:focus-visible {
+  outline: none;
+}
+
+.quik-thumb:focus-visible::after {
+  box-shadow: inset 0 0 0 2px var(--ah-ring);
+}
+
+.quik-thumb-tile {
+  flex: none;
+  aspect-ratio: 1;
+  width: 100%;
+  overflow: hidden;
+}
+
+.quik-thumb-image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  margin: auto;
+  max-width: calc(100% - 12px);
+  max-height: calc(100% - 12px);
+  pointer-events: none;
+}
+
+.quik-thumb-error {
+  margin: auto;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ah-danger);
+}
+
+.quik-thumb-caption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  min-width: 0;
+  padding: 0 8px;
+  border-top: 1px solid var(--ah-border);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+}
+
+.quik-thumb[aria-current="true"] .quik-thumb-name {
+  color: var(--ah-foreground);
+}
+
+@media (max-width: 760px) {
+  .quik-thumbs {
+    flex-basis: 112px;
+  }
+
+  .quik-thumb-name {
+    display: none;
+  }
+
+  .quik-thumb-caption {
+    justify-content: center;
+  }
+}
+
 .quik-grid {
   display: grid;
   flex: 1 1 auto;

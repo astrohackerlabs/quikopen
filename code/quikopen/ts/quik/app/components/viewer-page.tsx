@@ -7,9 +7,11 @@ import {
 } from "~/components/background-swatches";
 import { ImageFrame, type NaturalSize } from "~/components/image-frame";
 import { ImageSwitcher } from "~/components/image-switcher";
-import { ViewToggle, type ViewMode } from "~/components/view-toggle";
+import { ThumbnailSidebar } from "~/components/thumbnail-sidebar";
+import { ViewToggle } from "~/components/view-toggle";
 import { ZoomControl } from "~/components/zoom-control";
 import { gridShape } from "~/lib/image-grid";
+import { keyDelta, step, type ViewMode } from "~/lib/image-nav";
 import {
   applyRevision,
   imageUrl,
@@ -26,13 +28,9 @@ interface ImageState {
   natural: NaturalSize | null;
 }
 
-function wrap(index: number, count: number): number {
-  return ((index % count) + count) % count;
-}
-
 export function ViewerPage(): React.JSX.Element {
   const [images, setImages] = useState<ImageState[] | null>(null);
-  const [view, setView] = useState<ViewMode>("grid");
+  const [view, setView] = useState<ViewMode>("thumbs");
   const [current, setCurrent] = useState(0);
   const [bg, setBg] = useState<StageBg>("dark");
   const [zoom, setZoom] = useState<Zoom>(ZOOM_DEFAULT);
@@ -47,7 +45,8 @@ export function ViewerPage(): React.JSX.Element {
   viewRef.current = view;
 
   const count = images?.length ?? 0;
-  const single = view === "single" || count === 1;
+  const single = view !== "grid" || count === 1;
+  const thumbs = view === "thumbs" && count > 1;
 
   const update = useCallback(
     (index: number, patch: Partial<ImageState>): void => {
@@ -126,8 +125,8 @@ export function ViewerPage(): React.JSX.Element {
     navRef.current ??= data.nav;
     const steps = data.nav - navRef.current;
     navRef.current = data.nav;
-    if (steps !== 0 && viewRef.current === "single" && images.length > 1) {
-      setCurrent((index) => wrap(index + steps, images.length));
+    if (steps !== 0 && viewRef.current !== "grid" && images.length > 1) {
+      setCurrent((index) => step(index, steps, images.length));
     }
 
     const search = window.location.search;
@@ -159,15 +158,14 @@ export function ViewerPage(): React.JSX.Element {
   useEffect(() => {
     if (count < 2) return;
     const onKey = (event: KeyboardEvent): void => {
-      if (viewRef.current !== "single") return;
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      const delta = keyDelta(event.key, viewRef.current);
+      if (delta === null) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("[role=combobox], [role=listbox], input, select")) {
         return;
       }
       event.preventDefault();
-      const step = event.key === "ArrowRight" ? 1 : -1;
-      setCurrent((index) => wrap(index + step, count));
+      setCurrent((index) => step(index, delta, count));
     };
     window.addEventListener("keydown", onKey);
     return (): void => {
@@ -244,8 +242,30 @@ export function ViewerPage(): React.JSX.Element {
           />
         </div>
       ) : null}
-      <main className="quik-main">
-        {images === null ? null : single ? (
+      <main className="quik-main" data-view={thumbs ? "thumbs" : undefined}>
+        {images === null ? null : thumbs ? (
+          <>
+            <ThumbnailSidebar
+              images={images.map((image) => ({
+                name: image.name,
+                src: image.src,
+                failed: image.failedSrc === image.src,
+              }))}
+              index={current}
+              bg={bg}
+              onSelect={setCurrent}
+              onNatural={(index, natural) => {
+                // The stage reports natural size first when it can.
+                if (images[index]?.natural === null) update(index, { natural });
+              }}
+              onFailed={(index, failed) => {
+                const src = images[index]?.src ?? null;
+                update(index, { failedSrc: failed ? src : null });
+              }}
+            />
+            {frame(current, "quik-stage", "quik-image")}
+          </>
+        ) : single ? (
           frame(count === 1 ? 0 : current, "quik-stage", "quik-image")
         ) : (
           <div
